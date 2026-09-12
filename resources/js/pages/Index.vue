@@ -44,12 +44,11 @@ import {
     IconBrandInertia,
     IconDatabase,
 } from '@tabler/icons-vue';
-import Swal from 'sweetalert2';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { Component } from 'vue';
 import Navbar from '@/components/Navbar.vue';
 import StorageImage from '@/components/StorageImage.vue';
-import { useAppearance } from '@/composables/useAppearance';
+import { infoDialog } from '@/lib/swal';
 
 type Project = {
     id: number;
@@ -159,7 +158,6 @@ const employmentTypeLabels: Record<string, string> = {
     remote: 'Remote / Jarak Jauh',
 };
 
-const { resolvedAppearance } = useAppearance();
 const heroImageSizePx = computed(() => {
     const size = Number(props.heroImageSize);
     if (!Number.isFinite(size)) return 112;
@@ -177,18 +175,11 @@ function submitContact() {
         preserveScroll: true,
         onSuccess: () => {
             contactForm.reset();
-            Swal.fire({
+            infoDialog({
                 icon: 'success',
                 title: 'Pesan Terkirim',
                 text: 'Terima kasih sudah menulis, saya akan segera membalas.',
                 confirmButtonText: 'Tutup',
-                background:
-                    resolvedAppearance.value === 'dark' ? '#0a0a0a' : '#ffffff',
-                color:
-                    resolvedAppearance.value === 'dark' ? '#fafafa' : '#0a0a0a',
-                confirmButtonColor:
-                    resolvedAppearance.value === 'dark' ? '#fafafa' : '#171717',
-                customClass: { popup: 'rounded-xl border border-white/10' },
             });
         },
     });

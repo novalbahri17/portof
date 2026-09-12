@@ -4,8 +4,9 @@
 
 @font-face {
     font-family: 'Stedelijk';
-    src: url('/fonts/stedelijk-webfont.woff2') format('woff2'),
-         url('/fonts/stedelijk-webfont.woff') format('woff');
+    src:
+        url('/fonts/stedelijk-webfont.woff2') format('woff2'),
+        url('/fonts/stedelijk-webfont.woff') format('woff');
     font-weight: normal;
     font-style: normal;
     font-display: swap;
@@ -253,28 +254,46 @@
 .prose p {
     margin-bottom: 0.75em;
 }
-.prose h1, .prose h2, .prose h3, .prose h4 {
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4 {
     font-weight: 600;
     margin-top: 1.25em;
     margin-bottom: 0.5em;
     color: var(--foreground);
 }
-.prose h1 { font-size: 1.5em; }
-.prose h2 { font-size: 1.25em; }
-.prose h3 { font-size: 1.1em; }
+.prose h1 {
+    font-size: 1.5em;
+}
+.prose h2 {
+    font-size: 1.25em;
+}
+.prose h3 {
+    font-size: 1.1em;
+}
 .prose a {
     color: hsl(220 70% 50%);
     text-decoration: underline;
     text-underline-offset: 2px;
 }
-.prose strong { font-weight: 600; }
-.prose ul, .prose ol {
+.prose strong {
+    font-weight: 600;
+}
+.prose ul,
+.prose ol {
     padding-left: 1.5em;
     margin-bottom: 0.75em;
 }
-.prose ul { list-style-type: disc; }
-.prose ol { list-style-type: decimal; }
-.prose li { margin-bottom: 0.25em; }
+.prose ul {
+    list-style-type: disc;
+}
+.prose ol {
+    list-style-type: decimal;
+}
+.prose li {
+    margin-bottom: 0.25em;
+}
 .prose blockquote {
     border-left: 3px solid var(--border);
     padding-left: 1em;
@@ -310,7 +329,8 @@
     border-collapse: collapse;
     margin: 1em 0;
 }
-.prose th, .prose td {
+.prose th,
+.prose td {
     border: 1px solid var(--border);
     padding: 0.5em 0.75em;
     text-align: left;
@@ -318,4 +338,69 @@
 .prose th {
     background: var(--muted);
     font-weight: 600;
+}
+
+/* ---------------------------------------------------------------------------
+   SweetAlert2 — tombol dialog
+   Dipakai lewat helper `@/lib/swal`. `buttonsStyling: false` di helper tersebut
+   mematikan gaya bawaan SweetAlert2, jadi bentuk tombolnya diatur di sini agar
+   konsisten dengan tombol lain di aplikasi (radius, padding, warna tema).
+   --------------------------------------------------------------------------- */
+.swal2-popup .swal-btn-primary,
+.swal2-popup .swal-btn-destructive,
+.swal2-popup .swal-btn-cancel {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.25rem;
+    margin: 0 0.25rem;
+    cursor: pointer;
+    transition:
+        background-color 150ms ease,
+        color 150ms ease,
+        border-color 150ms ease;
+}
+
+.swal2-popup .swal-btn-primary {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+    border: 1px solid transparent;
+}
+
+.swal2-popup .swal-btn-primary:hover {
+    background-color: color-mix(in srgb, var(--primary) 88%, transparent);
+}
+
+.swal2-popup .swal-btn-destructive {
+    background-color: var(--destructive);
+    color: var(--destructive-foreground);
+    border: 1px solid transparent;
+}
+
+.swal2-popup .swal-btn-destructive:hover {
+    background-color: color-mix(in srgb, var(--destructive) 88%, transparent);
+}
+
+/* Tombol batal bergaya outline netral supaya tidak menyaingi tombol utama. */
+.swal2-popup .swal-btn-cancel {
+    background-color: transparent;
+    color: var(--muted-foreground);
+    border: 1px solid var(--border);
+}
+
+.swal2-popup .swal-btn-cancel:hover {
+    background-color: var(--accent);
+    color: var(--accent-foreground);
+}
+
+.swal2-popup .swal-btn-primary:focus-visible,
+.swal2-popup .swal-btn-destructive:focus-visible,
+.swal2-popup .swal-btn-cancel:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
 }

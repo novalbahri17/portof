@@ -7,9 +7,9 @@ import {
     Briefcase,
     GraduationCap,
 } from 'lucide-vue-next';
-import Swal from 'sweetalert2';
 import { computed, ref } from 'vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import { confirmDialog } from '@/lib/swal';
 
 type Experience = {
     id: number;
@@ -135,21 +135,13 @@ function period(e: Experience): string {
 }
 
 async function destroy(experience: Experience) {
-    const isDarkMode =
-        typeof document !== 'undefined' &&
-        document.documentElement.classList.contains('dark');
-
-    const result = await Swal.fire({
+    const result = await confirmDialog({
         icon: 'warning',
         title: 'Hapus pengalaman?',
         text: `"${experience.title}" akan dihapus permanen.`,
-        showCancelButton: true,
+        variant: 'destructive',
         confirmButtonText: 'Ya, hapus',
         cancelButtonText: 'Batal',
-        confirmButtonColor: '#dc2626',
-        background: isDarkMode ? '#0a0a0a' : '#ffffff',
-        color: isDarkMode ? '#fafafa' : '#0a0a0a',
-        customClass: { popup: 'rounded-xl border border-white/10' },
     });
 
     if (!result.isConfirmed) return;

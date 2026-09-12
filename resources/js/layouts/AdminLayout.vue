@@ -15,9 +15,9 @@ import {
     UserCog,
     House,
 } from 'lucide-vue-next';
-import Swal from 'sweetalert2';
 import { ref, computed, watch } from 'vue';
 import SiteLogo from '@/components/SiteLogo.vue';
+import { confirmDialog, infoDialog } from '@/lib/swal';
 import { logout } from '@/routes';
 
 const page = usePage();
@@ -45,19 +45,11 @@ function isActive(href: string) {
 function showSuccessAlert(message: string) {
     if (typeof window === 'undefined') return;
 
-    const isDarkMode = document.documentElement.classList.contains('dark');
-
-    Swal.fire({
+    infoDialog({
         icon: 'success',
         title: 'Perubahan tersimpan',
         text: message,
         confirmButtonText: 'Tutup',
-        confirmButtonColor: isDarkMode ? '#fafafa' : '#171717',
-        background: isDarkMode ? '#0a0a0a' : '#ffffff',
-        color: isDarkMode ? '#fafafa' : '#0a0a0a',
-        customClass: {
-            popup: 'rounded-xl border border-white/10',
-        },
     });
 }
 
@@ -76,22 +68,12 @@ const loggingOut = ref(false);
 async function handleLogout() {
     if (typeof window === 'undefined' || loggingOut.value) return;
 
-    const isDarkMode = document.documentElement.classList.contains('dark');
-
-    const result = await Swal.fire({
+    const result = await confirmDialog({
         icon: 'question',
         title: 'Keluar dari akun?',
         text: 'Kamu harus masuk lagi untuk mengakses halaman admin.',
-        showCancelButton: true,
         confirmButtonText: 'Ya, keluar',
         cancelButtonText: 'Batal',
-        confirmButtonColor: isDarkMode ? '#fafafa' : '#171717',
-        cancelButtonColor: isDarkMode ? '#52525b' : '#a1a1aa',
-        background: isDarkMode ? '#0a0a0a' : '#ffffff',
-        color: isDarkMode ? '#fafafa' : '#0a0a0a',
-        customClass: {
-            popup: 'rounded-xl border border-white/10',
-        },
     });
 
     if (!result.isConfirmed) return;

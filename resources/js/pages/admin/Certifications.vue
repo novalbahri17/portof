@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { Head, useForm, router } from '@inertiajs/vue3';
 import { Plus, Pencil, Trash2, FileText, ImagePlus } from 'lucide-vue-next';
-import Swal from 'sweetalert2';
 import { computed, ref } from 'vue';
 import FileInput from '@/components/FileInput.vue';
 import SavedImages from '@/components/SavedImages.vue';
 import StorageImage from '@/components/StorageImage.vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import { confirmDialog } from '@/lib/swal';
 
 type Certification = {
     id: number;
@@ -102,21 +102,13 @@ function removeExistingImage(path: string) {
 async function removePdf() {
     if (!editing.value) return;
 
-    const isDarkMode =
-        typeof document !== 'undefined' &&
-        document.documentElement.classList.contains('dark');
-
-    const result = await Swal.fire({
+    const result = await confirmDialog({
         icon: 'warning',
         title: 'Hapus PDF diploma?',
         text: 'Berkas PDF akan dihapus dari server.',
-        showCancelButton: true,
+        variant: 'destructive',
         confirmButtonText: 'Ya, hapus',
         cancelButtonText: 'Batal',
-        confirmButtonColor: '#dc2626',
-        background: isDarkMode ? '#0a0a0a' : '#ffffff',
-        color: isDarkMode ? '#fafafa' : '#0a0a0a',
-        customClass: { popup: 'rounded-xl border border-white/10' },
     });
 
     if (!result.isConfirmed) return;
@@ -159,23 +151,13 @@ function submit() {
 }
 
 async function destroy(certification: Certification) {
-    const isDarkMode =
-        typeof document !== 'undefined' &&
-        document.documentElement.classList.contains('dark');
-
-    const result = await Swal.fire({
+    const result = await confirmDialog({
         icon: 'warning',
         title: 'Hapus sertifikasi?',
         text: 'Tindakan ini juga akan menghapus semua gambar dan diploma yang terkait.',
-        showCancelButton: true,
+        variant: 'destructive',
         confirmButtonText: 'Ya, hapus',
         cancelButtonText: 'Batal',
-        confirmButtonColor: '#dc2626',
-        background: isDarkMode ? '#0a0a0a' : '#ffffff',
-        color: isDarkMode ? '#fafafa' : '#0a0a0a',
-        customClass: {
-            popup: 'rounded-xl border border-white/10',
-        },
     });
 
     if (!result.isConfirmed) return;
