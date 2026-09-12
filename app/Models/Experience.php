@@ -6,8 +6,27 @@ use Illuminate\Database\Eloquent\Model;
 
 class Experience extends Model
 {
+    /** Label jenis pekerjaan (sesuai referensi UI). */
+    public const EMPLOYMENT_TYPES = [
+        'school_internship' => 'Magang Sekolah / Internship',
+        'internship' => 'Magang Kerja',
+        'full_time' => 'Penuh Waktu / Full-time',
+        'part_time' => 'Paruh Waktu / Part-time',
+        'contract' => 'Kontrak / Contract',
+        'freelance' => 'Pekerja Lepas / Freelance',
+    ];
+
+    /** Label sistem kerja. */
+    public const WORK_MODES = [
+        'on_site' => 'Di Kantor / On-site',
+        'remote' => 'Remote',
+        'hybrid' => 'Hybrid',
+    ];
+
     protected $fillable = [
         'type',
+        'employment_type',
+        'work_mode',
         'title',
         'institution',
         'location',

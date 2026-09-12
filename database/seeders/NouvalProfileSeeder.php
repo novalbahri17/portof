@@ -58,6 +58,8 @@ class NouvalProfileSeeder extends Seeder
         $items = [
             [
                 'type' => 'education',
+                'employment_type' => null,
+                'work_mode' => null,
                 'title' => 'S1 Teknik Informatika (S.Kom.)',
                 'institution' => 'Universitas 17 Agustus 1945 Surabaya',
                 'location' => 'Surabaya',
@@ -69,6 +71,8 @@ class NouvalProfileSeeder extends Seeder
             ],
             [
                 'type' => 'work',
+                'employment_type' => 'contract',
+                'work_mode' => 'remote',
                 'title' => 'Web Developer',
                 'institution' => 'MBA Laundry Express',
                 'location' => 'Sidoarjo',
@@ -80,6 +84,8 @@ class NouvalProfileSeeder extends Seeder
             ],
             [
                 'type' => 'work',
+                'employment_type' => 'internship',
+                'work_mode' => 'on_site',
                 'title' => 'System Analyst Intern (Program MSIB Angkatan 7)',
                 'institution' => 'LLDIKTI Wilayah VII Jawa Timur',
                 'location' => 'Surabaya',
@@ -91,6 +97,8 @@ class NouvalProfileSeeder extends Seeder
             ],
             [
                 'type' => 'work',
+                'employment_type' => 'full_time',
+                'work_mode' => 'on_site',
                 'title' => 'HR Manager',
                 'institution' => 'MBA Laundry Express',
                 'location' => 'Sidoarjo',
@@ -102,6 +110,8 @@ class NouvalProfileSeeder extends Seeder
             ],
             [
                 'type' => 'work',
+                'employment_type' => 'part_time',
+                'work_mode' => 'remote',
                 'title' => 'Admin E-Commerce',
                 'institution' => 'GopalShop',
                 'location' => 'Sidoarjo',
