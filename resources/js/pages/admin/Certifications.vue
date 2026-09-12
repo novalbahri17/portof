@@ -3,6 +3,7 @@ import { Head, useForm, router } from '@inertiajs/vue3';
 import { Plus, Pencil, Trash2, FileText, X, ImagePlus } from 'lucide-vue-next';
 import Swal from 'sweetalert2';
 import { computed, ref } from 'vue';
+import FileInput from '@/components/FileInput.vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 
 type Certification = {
@@ -18,7 +19,7 @@ type Certification = {
 defineProps<{ certifications: Certification[] }>();
 const showForm = ref(false);
 const editing = ref<Certification | null>(null);
-const fileInput = ref<HTMLInputElement | null>(null);
+const picker = ref<InstanceType<typeof FileInput> | null>(null);
 
 const form = useForm({
     title: '',
@@ -39,7 +40,7 @@ const previews = computed(() =>
 );
 
 function resetFileInput() {
-    if (fileInput.value) fileInput.value.value = '';
+    picker.value?.reset();
 }
 
 function openCreate() {
@@ -228,24 +229,15 @@ async function destroy(certification: Certification) {
                                 }})
                             </span>
                         </label>
-                        <input
-                            ref="fileInput"
-                            type="file"
+                        <FileInput
+                            ref="picker"
+                            label="Pilih gambar"
                             accept="image/*"
                             multiple
-                            class="w-full cursor-pointer rounded-lg border border-dashed border-input bg-background px-3 py-2 text-sm file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-primary/10 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-primary"
+                            hint="Bisa pilih beberapa gambar sekaligus. Maks 2 MB per gambar."
+                            :error="form.errors.images"
                             @change="onPickImages"
                         />
-                        <p class="mt-1 text-xs text-muted-foreground">
-                            Tahan Ctrl (atau Shift) saat memilih untuk mengambil
-                            beberapa gambar sekaligus. Maks 2 MB per gambar.
-                        </p>
-                        <p
-                            v-if="form.errors.images"
-                            class="mt-1 text-xs text-destructive"
-                        >
-                            {{ form.errors.images }}
-                        </p>
                         <p
                             v-for="(err, i) in Object.entries(form.errors).find(
                                 ([k]) => k.startsWith('images.'),
@@ -341,10 +333,11 @@ async function destroy(certification: Certification) {
                         >
                             Diploma (PDF opsional)
                         </label>
-                        <input
-                            type="file"
+                        <FileInput
+                            label="Pilih PDF"
                             accept="application/pdf"
-                            class="w-full cursor-pointer rounded-lg border border-dashed border-input bg-background px-3 py-2 text-sm file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-primary/10 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-primary"
+                            :error="form.errors.certificate_file"
+                            empty-text="Belum ada berkas dipilih"
                             @change="
                                 (e: Event) =>
                                     (form.certificate_file =
@@ -352,12 +345,6 @@ async function destroy(certification: Certification) {
                                             [])[0] || null)
                             "
                         />
-                        <p
-                            v-if="form.errors.certificate_file"
-                            class="mt-1 text-xs text-destructive"
-                        >
-                            {{ form.errors.certificate_file }}
-                        </p>
 
                         <a
                             v-if="editing?.certificate_file"

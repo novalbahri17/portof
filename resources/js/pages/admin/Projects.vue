@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { Head, useForm, router } from '@inertiajs/vue3';
-import AdminLayout from '@/layouts/AdminLayout.vue';
-import RichEditor from '@/components/RichEditor.vue';
 import { Plus, Pencil, Trash2, Search } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
-import { technologyCatalog, type TechnologyCatalogItem } from '@/lib/technology-catalog';
+import FileInput from '@/components/FileInput.vue';
+import RichEditor from '@/components/RichEditor.vue';
+import AdminLayout from '@/layouts/AdminLayout.vue';
 import { resolveTablerIcon } from '@/lib/tabler-icons';
+import { technologyCatalog } from '@/lib/technology-catalog';
+import type { TechnologyCatalogItem } from '@/lib/technology-catalog';
 
 type Technology = {
     key: string;
@@ -34,10 +36,12 @@ type Project = {
     published: boolean;
 };
 
-const props = defineProps<{ projects: Project[] }>();
+defineProps<{ projects: Project[] }>();
 const showForm = ref(false);
 const editing = ref<Project | null>(null);
 const existingGallery = ref<string[]>([]);
+const imagePicker = ref<InstanceType<typeof FileInput> | null>(null);
+const galleryPicker = ref<InstanceType<typeof FileInput> | null>(null);
 
 const form = useForm({
     title: '',
@@ -66,7 +70,9 @@ const filteredTechnologies = computed(() => {
     const term = technologySearch.value.trim().toLowerCase();
     if (!term) return technologyCatalog;
     return technologyCatalog.filter(
-        (item) => item.name.toLowerCase().includes(term) || item.key.toLowerCase().includes(term),
+        (item) =>
+            item.name.toLowerCase().includes(term) ||
+            item.key.toLowerCase().includes(term),
     );
 });
 
@@ -96,7 +102,9 @@ function hasTechnology(techKey: string) {
 
 function toggleTechnology(item: TechnologyCatalogItem) {
     if (hasTechnology(item.key)) {
-        form.technologies = form.technologies.filter((tech) => tech.key !== item.key);
+        form.technologies = form.technologies.filter(
+            (tech) => tech.key !== item.key,
+        );
         return;
     }
 
@@ -108,7 +116,9 @@ function toggleTechnology(item: TechnologyCatalogItem) {
 }
 
 function removeTechnology(techKey: string) {
-    form.technologies = form.technologies.filter((tech) => tech.key !== techKey);
+    form.technologies = form.technologies.filter(
+        (tech) => tech.key !== techKey,
+    );
 }
 
 function handleGalleryChange(event: Event) {
@@ -124,6 +134,8 @@ function openCreate() {
     form.tags = [];
     form.features = [];
     form.gallery_images = [];
+    imagePicker.value?.reset();
+    galleryPicker.value?.reset();
     showForm.value = true;
 }
 
@@ -146,11 +158,15 @@ function openEdit(project: Project) {
     form.published = project.published;
     form.image = null;
     form.gallery_images = [];
+    imagePicker.value?.reset();
+    galleryPicker.value?.reset();
     showForm.value = true;
 }
 
 function submit() {
-    const url = editing.value ? `/admin/projects/${editing.value.id}` : '/admin/projects';
+    const url = editing.value
+        ? `/admin/projects/${editing.value.id}`
+        : '/admin/projects';
     const opts = {
         forceFormData: true,
         onSuccess: () => {
@@ -161,11 +177,16 @@ function submit() {
             form.tags = [];
             form.features = [];
             form.gallery_images = [];
+            imagePicker.value?.reset();
+            galleryPicker.value?.reset();
         },
     };
 
     if (editing.value) {
-        form.post(url, { ...opts, headers: { 'X-HTTP-Method-Override': 'PUT' } });
+        form.post(url, {
+            ...opts,
+            headers: { 'X-HTTP-Method-Override': 'PUT' },
+        });
     } else {
         form.post(url, opts);
     }
@@ -190,13 +211,21 @@ function destroy(id: number) {
             </button>
         </div>
 
-        <div v-if="showForm" class="mb-6 rounded-xl border border-border bg-card p-6 shadow-sm">
-            <h3 class="mb-4 text-lg font-semibold text-foreground">{{ editing ? 'Edit' : 'Tambah' }} proyek</h3>
+        <div
+            v-if="showForm"
+            class="mb-6 rounded-xl border border-border bg-card p-6 shadow-sm"
+        >
+            <h3 class="mb-4 text-lg font-semibold text-foreground">
+                {{ editing ? 'Edit' : 'Tambah' }} proyek
+            </h3>
 
             <form class="space-y-4" @submit.prevent="submit">
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div>
-                        <label class="mb-1 block text-sm font-medium text-foreground">Judul</label>
+                        <label
+                            class="mb-1 block text-sm font-medium text-foreground"
+                            >Judul</label
+                        >
                         <input
                             v-model="form.title"
                             type="text"
@@ -205,7 +234,10 @@ function destroy(id: number) {
                         />
                     </div>
                     <div>
-                        <label class="mb-1 block text-sm font-medium text-foreground">Tipe</label>
+                        <label
+                            class="mb-1 block text-sm font-medium text-foreground"
+                            >Tipe</label
+                        >
                         <select
                             v-model="form.type"
                             class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
@@ -217,7 +249,10 @@ function destroy(id: number) {
                 </div>
 
                 <div>
-                    <label class="mb-1 block text-sm font-medium text-foreground">Ringkasan proyek</label>
+                    <label
+                        class="mb-1 block text-sm font-medium text-foreground"
+                        >Ringkasan proyek</label
+                    >
                     <RichEditor
                         v-model="form.description"
                         :height="180"
@@ -228,7 +263,10 @@ function destroy(id: number) {
 
                 <div class="grid gap-4 sm:grid-cols-3">
                     <div>
-                        <label class="mb-1 block text-sm font-medium text-foreground">Masalah / konteks</label>
+                        <label
+                            class="mb-1 block text-sm font-medium text-foreground"
+                            >Masalah / konteks</label
+                        >
                         <textarea
                             v-model="form.challenge"
                             rows="4"
@@ -236,7 +274,10 @@ function destroy(id: number) {
                         />
                     </div>
                     <div>
-                        <label class="mb-1 block text-sm font-medium text-foreground">Solusi</label>
+                        <label
+                            class="mb-1 block text-sm font-medium text-foreground"
+                            >Solusi</label
+                        >
                         <textarea
                             v-model="form.solution"
                             rows="4"
@@ -244,7 +285,10 @@ function destroy(id: number) {
                         />
                     </div>
                     <div>
-                        <label class="mb-1 block text-sm font-medium text-foreground">Hasil</label>
+                        <label
+                            class="mb-1 block text-sm font-medium text-foreground"
+                            >Hasil</label
+                        >
                         <textarea
                             v-model="form.results"
                             rows="4"
@@ -255,7 +299,10 @@ function destroy(id: number) {
 
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div>
-                        <label class="mb-1 block text-sm font-medium text-foreground">URL</label>
+                        <label
+                            class="mb-1 block text-sm font-medium text-foreground"
+                            >URL</label
+                        >
                         <input
                             v-model="form.url"
                             type="url"
@@ -263,7 +310,10 @@ function destroy(id: number) {
                         />
                     </div>
                     <div>
-                        <label class="mb-1 block text-sm font-medium text-foreground">Repo URL</label>
+                        <label
+                            class="mb-1 block text-sm font-medium text-foreground"
+                            >Repo URL</label
+                        >
                         <input
                             v-model="form.repo_url"
                             type="url"
@@ -274,23 +324,43 @@ function destroy(id: number) {
 
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div>
-                        <label class="mb-1 block text-sm font-medium text-foreground">Gambar utama</label>
-                        <input
-                            type="file"
+                        <label
+                            class="mb-1 block text-sm font-medium text-foreground"
+                            >Gambar utama</label
+                        >
+                        <FileInput
+                            ref="imagePicker"
+                            label="Pilih gambar"
                             accept="image/*"
-                            class="text-sm"
-                            @change="(e: Event) => form.image = ((e.target as HTMLInputElement).files ?? [])[0] || null"
+                            :error="form.errors.image"
+                            @change="
+                                (e: Event) =>
+                                    (form.image =
+                                        ((e.target as HTMLInputElement).files ??
+                                            [])[0] || null)
+                            "
                         />
                     </div>
                     <div>
-                        <label class="mb-1 block text-sm font-medium text-foreground">Galeri (multi-upload)</label>
-                        <input type="file" accept="image/*" multiple class="text-sm" @change="handleGalleryChange" />
-                        <p class="mt-1 text-xs text-muted-foreground">{{ form.gallery_images.length }} gambar baru dipilih.</p>
+                        <label
+                            class="mb-1 block text-sm font-medium text-foreground"
+                            >Galeri (multi-upload)</label
+                        >
+                        <FileInput
+                            ref="galleryPicker"
+                            label="Pilih gambar"
+                            accept="image/*"
+                            multiple
+                            hint="Bisa pilih beberapa gambar sekaligus."
+                            @change="handleGalleryChange"
+                        />
                     </div>
                 </div>
 
                 <div v-if="existingGallery.length" class="space-y-2">
-                    <label class="block text-sm font-medium text-foreground">Galeri saat ini</label>
+                    <label class="block text-sm font-medium text-foreground"
+                        >Galeri saat ini</label
+                    >
                     <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
                         <img
                             v-for="img in existingGallery"
@@ -300,11 +370,17 @@ function destroy(id: number) {
                             class="h-20 w-full rounded-md border border-border object-cover"
                         />
                     </div>
-                    <p class="text-xs text-muted-foreground">Gambar baru akan ditambahkan tanpa menghapus yang sudah ada.</p>
+                    <p class="text-xs text-muted-foreground">
+                        Gambar baru akan ditambahkan tanpa menghapus yang sudah
+                        ada.
+                    </p>
                 </div>
 
                 <div>
-                    <label class="mb-1 block text-sm font-medium text-foreground">Tags</label>
+                    <label
+                        class="mb-1 block text-sm font-medium text-foreground"
+                        >Tags</label
+                    >
                     <div class="flex gap-2">
                         <input
                             v-model="tagInput"
@@ -313,7 +389,13 @@ function destroy(id: number) {
                             placeholder="Tambah tag"
                             @keydown.enter.prevent="addTag"
                         />
-                        <button type="button" class="rounded-lg bg-secondary px-3 py-2 text-sm" @click="addTag">+</button>
+                        <button
+                            type="button"
+                            class="rounded-lg bg-secondary px-3 py-2 text-sm"
+                            @click="addTag"
+                        >
+                            +
+                        </button>
                     </div>
                     <div class="mt-2 flex flex-wrap gap-1.5">
                         <span
@@ -322,13 +404,22 @@ function destroy(id: number) {
                             class="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs"
                         >
                             {{ tag }}
-                            <button type="button" class="hover:text-destructive" @click="removeTag(tag)">&times;</button>
+                            <button
+                                type="button"
+                                class="hover:text-destructive"
+                                @click="removeTag(tag)"
+                            >
+                                &times;
+                            </button>
                         </span>
                     </div>
                 </div>
 
                 <div>
-                    <label class="mb-1 block text-sm font-medium text-foreground">Fitur (bullet)</label>
+                    <label
+                        class="mb-1 block text-sm font-medium text-foreground"
+                        >Fitur (bullet)</label
+                    >
                     <div class="flex gap-2">
                         <input
                             v-model="featureInput"
@@ -337,7 +428,13 @@ function destroy(id: number) {
                             placeholder="Tambah fitur"
                             @keydown.enter.prevent="addFeature"
                         />
-                        <button type="button" class="rounded-lg bg-secondary px-3 py-2 text-sm" @click="addFeature">+</button>
+                        <button
+                            type="button"
+                            class="rounded-lg bg-secondary px-3 py-2 text-sm"
+                            @click="addFeature"
+                        >
+                            +
+                        </button>
                     </div>
                     <div class="mt-2 flex flex-wrap gap-1.5">
                         <span
@@ -346,16 +443,26 @@ function destroy(id: number) {
                             class="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs"
                         >
                             {{ feature }}
-                            <button type="button" class="hover:text-destructive" @click="removeFeature(feature)">&times;</button>
+                            <button
+                                type="button"
+                                class="hover:text-destructive"
+                                @click="removeFeature(feature)"
+                            >
+                                &times;
+                            </button>
                         </span>
                     </div>
                 </div>
 
                 <div class="space-y-3 rounded-lg border border-border p-4">
-                    <label class="block text-sm font-medium text-foreground">Teknologi (Tabler Icons)</label>
+                    <label class="block text-sm font-medium text-foreground"
+                        >Teknologi (Tabler Icons)</label
+                    >
 
                     <div class="relative">
-                        <Search class="pointer-events-none absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
+                        <Search
+                            class="pointer-events-none absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground"
+                        />
                         <input
                             v-model="technologySearch"
                             type="text"
@@ -364,7 +471,9 @@ function destroy(id: number) {
                         />
                     </div>
 
-                    <div class="max-h-40 overflow-y-auto rounded-md border border-border">
+                    <div
+                        class="max-h-40 overflow-y-auto rounded-md border border-border"
+                    >
                         <button
                             v-for="item in filteredTechnologies"
                             :key="item.key"
@@ -373,10 +482,15 @@ function destroy(id: number) {
                             @click="toggleTechnology(item)"
                         >
                             <span class="inline-flex items-center gap-2">
-                                <component :is="resolveTablerIcon(item.icon)" class="h-4 w-4 text-primary" />
+                                <component
+                                    :is="resolveTablerIcon(item.icon)"
+                                    class="h-4 w-4 text-primary"
+                                />
                                 {{ item.name }}
                             </span>
-                            <span class="text-xs text-muted-foreground">{{ hasTechnology(item.key) ? 'Terpilih' : 'Pilih' }}</span>
+                            <span class="text-xs text-muted-foreground">{{
+                                hasTechnology(item.key) ? 'Terpilih' : 'Pilih'
+                            }}</span>
                         </button>
                     </div>
 
@@ -386,19 +500,46 @@ function destroy(id: number) {
                             :key="tech.key"
                             class="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background px-2.5 py-1 text-xs"
                         >
-                            <component :is="resolveTablerIcon(tech.icon)" class="h-3.5 w-3.5 text-primary" />
+                            <component
+                                :is="resolveTablerIcon(tech.icon)"
+                                class="h-3.5 w-3.5 text-primary"
+                            />
                             {{ tech.name }}
-                            <button type="button" class="hover:text-destructive" @click="removeTechnology(tech.key)">&times;</button>
+                            <button
+                                type="button"
+                                class="hover:text-destructive"
+                                @click="removeTechnology(tech.key)"
+                            >
+                                &times;
+                            </button>
                         </span>
                     </div>
                 </div>
 
                 <div class="flex items-center gap-6">
-                    <label class="flex items-center gap-2 text-sm"><input v-model="form.published" type="checkbox" class="rounded" /> Diterbitkan</label>
-                    <label class="flex items-center gap-2 text-sm"><input v-model="form.featured" type="checkbox" class="rounded" /> Unggulan</label>
+                    <label class="flex items-center gap-2 text-sm"
+                        ><input
+                            v-model="form.published"
+                            type="checkbox"
+                            class="rounded"
+                        />
+                        Diterbitkan</label
+                    >
+                    <label class="flex items-center gap-2 text-sm"
+                        ><input
+                            v-model="form.featured"
+                            type="checkbox"
+                            class="rounded"
+                        />
+                        Unggulan</label
+                    >
                     <div class="flex items-center gap-2">
                         <label class="text-sm">Urutan:</label>
-                        <input v-model.number="form.sort_order" type="number" class="w-20 rounded-lg border border-input bg-background px-2 py-1 text-sm" />
+                        <input
+                            v-model.number="form.sort_order"
+                            type="number"
+                            class="w-20 rounded-lg border border-input bg-background px-2 py-1 text-sm"
+                        />
                     </div>
                 </div>
 
@@ -410,7 +551,13 @@ function destroy(id: number) {
                     >
                         {{ form.processing ? 'Menyimpan...' : 'Simpan' }}
                     </button>
-                    <button type="button" class="rounded-lg border border-border px-4 py-2 text-sm" @click="showForm = false">Batal</button>
+                    <button
+                        type="button"
+                        class="rounded-lg border border-border px-4 py-2 text-sm"
+                        @click="showForm = false"
+                    >
+                        Batal
+                    </button>
                 </div>
             </form>
         </div>
@@ -419,37 +566,88 @@ function destroy(id: number) {
             <table class="w-full text-sm">
                 <thead class="border-b border-border bg-muted/50">
                     <tr>
-                        <th class="px-4 py-3 text-left font-medium text-muted-foreground">Judul</th>
-                        <th class="px-4 py-3 text-left font-medium text-muted-foreground">Tipe</th>
-                        <th class="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
-                        <th class="px-4 py-3 text-right font-medium text-muted-foreground">Aksi</th>
+                        <th
+                            class="px-4 py-3 text-left font-medium text-muted-foreground"
+                        >
+                            Judul
+                        </th>
+                        <th
+                            class="px-4 py-3 text-left font-medium text-muted-foreground"
+                        >
+                            Tipe
+                        </th>
+                        <th
+                            class="px-4 py-3 text-left font-medium text-muted-foreground"
+                        >
+                            Status
+                        </th>
+                        <th
+                            class="px-4 py-3 text-right font-medium text-muted-foreground"
+                        >
+                            Aksi
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="project in projects" :key="project.id" class="border-b border-border last:border-0">
-                        <td class="px-4 py-3 font-medium text-foreground">{{ project.title }}</td>
+                    <tr
+                        v-for="project in projects"
+                        :key="project.id"
+                        class="border-b border-border last:border-0"
+                    >
+                        <td class="px-4 py-3 font-medium text-foreground">
+                            {{ project.title }}
+                        </td>
                         <td class="px-4 py-3">
                             <span
-                                :class="project.type === 'side_project' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300'"
+                                :class="
+                                    project.type === 'side_project'
+                                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                                        : 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300'
+                                "
                                 class="rounded-full px-2 py-0.5 text-xs"
                             >
-                                {{ project.type === 'side_project' ? 'Side Project' : 'Portofolio' }}
+                                {{
+                                    project.type === 'side_project'
+                                        ? 'Side Project'
+                                        : 'Portofolio'
+                                }}
                             </span>
                         </td>
                         <td class="px-4 py-3">
                             <span
-                                :class="project.published ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'"
+                                :class="
+                                    project.published
+                                        ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                                        : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
+                                "
                                 class="rounded-full px-2 py-0.5 text-xs"
                             >
                                 {{ project.published ? 'Terbit' : 'Draf' }}
                             </span>
                         </td>
                         <td class="px-4 py-3 text-right">
-                            <button class="mr-2 text-muted-foreground hover:text-foreground" @click="openEdit(project)"><Pencil class="h-4 w-4" /></button>
-                            <button class="text-muted-foreground hover:text-destructive" @click="destroy(project.id)"><Trash2 class="h-4 w-4" /></button>
+                            <button
+                                class="mr-2 text-muted-foreground hover:text-foreground"
+                                @click="openEdit(project)"
+                            >
+                                <Pencil class="h-4 w-4" />
+                            </button>
+                            <button
+                                class="text-muted-foreground hover:text-destructive"
+                                @click="destroy(project.id)"
+                            >
+                                <Trash2 class="h-4 w-4" />
+                            </button>
                         </td>
                     </tr>
-                    <tr v-if="!projects.length"><td colspan="4" class="px-4 py-8 text-center text-muted-foreground">Belum ada proyek.</td></tr>
+                    <tr v-if="!projects.length">
+                        <td
+                            colspan="4"
+                            class="px-4 py-8 text-center text-muted-foreground"
+                        >
+                            Belum ada proyek.
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
