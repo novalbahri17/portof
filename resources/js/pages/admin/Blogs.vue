@@ -73,11 +73,16 @@ function destroy(id: number) {
                 </div>
                 <div>
                     <label class="mb-1 block text-sm font-medium text-foreground">Ringkasan</label>
-                    <RichEditor v-model="form.excerpt" :height="150" minimal />
+                    <RichEditor v-model="form.excerpt" :height="90" placeholder="Ringkasan singkat artikel..." />
                 </div>
                 <div>
                     <label class="mb-1 block text-sm font-medium text-foreground">Konten</label>
-                    <RichEditor v-model="form.content" :height="400" />
+                    <RichEditor
+                        v-model="form.content"
+                        :height="320"
+                        placeholder="Tulis isi artikel di sini..."
+                        hint="Pisahkan antar paragraf dengan satu baris kosong."
+                    />
                 </div>
                 <div>
                     <label class="mb-1 block text-sm font-medium text-foreground">Gambar</label>

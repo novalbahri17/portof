@@ -218,7 +218,12 @@ function destroy(id: number) {
 
                 <div>
                     <label class="mb-1 block text-sm font-medium text-foreground">Ringkasan proyek</label>
-                    <RichEditor v-model="form.description" :height="250" />
+                    <RichEditor
+                        v-model="form.description"
+                        :height="180"
+                        placeholder="Jelaskan proyek ini secara singkat..."
+                        hint="Pisahkan antar paragraf dengan satu baris kosong."
+                    />
                 </div>
 
                 <div class="grid gap-4 sm:grid-cols-3">

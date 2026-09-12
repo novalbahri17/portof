@@ -204,11 +204,21 @@ function deleteSeoImage(type: 'og_image' | 'twitter_image' | 'favicon' | 'hero_i
             <!-- About & Hobbies -->
             <div>
                 <label class="mb-2 block text-sm font-medium text-foreground">Tentang Saya</label>
-                <RichEditor v-model="form.about" :height="300" />
+                <RichEditor
+                    v-model="form.about"
+                    :height="220"
+                    placeholder="Ceritakan tentang diri Anda..."
+                    hint="Pisahkan antar paragraf dengan satu baris kosong."
+                />
             </div>
             <div>
                 <label class="mb-2 block text-sm font-medium text-foreground">Hobbies</label>
-                <RichEditor v-model="form.hobbies" :height="200" />
+                <RichEditor
+                    v-model="form.hobbies"
+                    :height="180"
+                    placeholder="Satu hobi per baris, contoh: Membaca — Buku tentang arsitektur software"
+                    hint="Satu hobi per baris. Gunakan format: Judul — Keterangan (tanda pisah opsional)."
+                />
             </div>
 
             <!-- Social Links -->
