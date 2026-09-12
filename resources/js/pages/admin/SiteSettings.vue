@@ -14,6 +14,7 @@ import {
 import { computed, ref } from 'vue';
 import FileInput from '@/components/FileInput.vue';
 import RichEditor from '@/components/RichEditor.vue';
+import StorageImage from '@/components/StorageImage.vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 
 const socialFields = [
@@ -277,14 +278,10 @@ function deleteSeoImage(
                             v-if="heroImagePreview"
                             class="flex items-center gap-3"
                         >
-                            <img
-                                :src="
-                                    heroImagePreview.startsWith('blob:')
-                                        ? heroImagePreview
-                                        : `/storage/${heroImagePreview}`
-                                "
+                            <StorageImage
+                                :path="heroImagePreview"
                                 alt="Hero profile"
-                                class="border-2 border-primary/40 object-cover"
+                                image-class="border-2 border-primary/40 object-cover"
                                 :class="heroImageShapeClass"
                                 :style="{
                                     width: `${heroImageSizePx}px`,
@@ -510,14 +507,10 @@ function deleteSeoImage(
                             v-if="logoLightPreview"
                             class="flex items-center gap-2"
                         >
-                            <img
-                                :src="
-                                    logoLightPreview.startsWith('blob:')
-                                        ? logoLightPreview
-                                        : `/storage/${logoLightPreview}`
-                                "
+                            <StorageImage
+                                :path="logoLightPreview"
                                 alt="Logo"
-                                class="h-10 rounded border border-border bg-white object-contain p-1"
+                                image-class="h-10 rounded border border-border bg-white object-contain p-1"
                             />
                             <button
                                 type="button"
@@ -559,14 +552,11 @@ function deleteSeoImage(
                 </p>
                 <div class="flex items-center gap-4">
                     <div v-if="faviconPreview" class="flex items-center gap-3">
-                        <img
-                            :src="
-                                faviconPreview.startsWith('blob:')
-                                    ? faviconPreview
-                                    : `/storage/${faviconPreview}`
-                            "
+                        <StorageImage
+                            :path="faviconPreview"
+                            :show-label="false"
                             alt="Favicon"
-                            class="h-10 w-10 rounded border border-border object-contain"
+                            image-class="h-10 w-10 rounded border border-border object-contain"
                         />
                         <button
                             type="button"
@@ -649,14 +639,11 @@ function deleteSeoImage(
                             v-if="ogImagePreview"
                             class="flex flex-col items-center gap-2"
                         >
-                            <img
-                                :src="
-                                    ogImagePreview.startsWith('blob:')
-                                        ? ogImagePreview
-                                        : `/storage/${ogImagePreview}`
-                                "
+                            <StorageImage
+                                :path="ogImagePreview"
+                                :show-label="false"
                                 alt="OG Image"
-                                class="h-24 w-44 rounded border border-border object-cover"
+                                image-class="h-24 w-44 rounded border border-border object-cover"
                             />
                             <button
                                 type="button"
@@ -741,14 +728,11 @@ function deleteSeoImage(
                             v-if="twitterImagePreview"
                             class="flex flex-col items-center gap-2"
                         >
-                            <img
-                                :src="
-                                    twitterImagePreview.startsWith('blob:')
-                                        ? twitterImagePreview
-                                        : `/storage/${twitterImagePreview}`
-                                "
+                            <StorageImage
+                                :path="twitterImagePreview"
+                                :show-label="false"
                                 alt="Twitter Image"
-                                class="h-24 w-44 rounded border border-border object-cover"
+                                image-class="h-24 w-44 rounded border border-border object-cover"
                             />
                             <button
                                 type="button"

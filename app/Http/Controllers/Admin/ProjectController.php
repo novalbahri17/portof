@@ -95,7 +95,15 @@ class ProjectController extends Controller
         $validated['technologies'] = $this->sanitizeTechnologies($request->input('technologies'));
 
         if ($request->hasFile('image')) {
-            $validated['image'] = $request->file('image')->store('projects', 'public');
+            $stored = $request->file('image')->store('projects', 'public');
+
+            if (! $stored) {
+                return back()->withErrors([
+                    'image' => 'Gambar gagal disimpan. Coba unggah ulang.',
+                ]);
+            }
+
+            $validated['image'] = $stored;
         }
 
         $existingGallery = is_array($project->gallery) ? $project->gallery : [];
@@ -120,7 +128,13 @@ class ProjectController extends Controller
 
         if ($request->hasFile('gallery_images')) {
             foreach ($request->file('gallery_images') as $image) {
-                $gallery[] = $image->store('projects', 'public');
+                $stored = $image->store('projects', 'public');
+
+                if (! $stored) {
+                    return [];
+                }
+
+                $gallery[] = $stored;
             }
         }
 

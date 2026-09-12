@@ -12,13 +12,19 @@ services:
     env_file:
       - .env
     volumes:
+      # Volume terpisah dengan nama lama supaya data unggahan yang sudah
+      # ada (storage/app/public) tidak ikut terhapus saat redeploy.
       - storage-data:/var/www/html/storage/app/public
+      # FILESYSTEM_DISK=local menyimpan berkas di storage/app/private.
+      # Tanpa volume ini, semua berkas di sana hilang setiap deploy ulang.
+      - storage-private:/var/www/html/storage/app/private
       - storage-logs:/var/www/html/storage/logs
     networks:
       - dokploy-network
 
 volumes:
   storage-data:
+  storage-private:
   storage-logs:
 
 networks:

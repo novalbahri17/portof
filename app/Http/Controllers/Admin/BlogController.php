@@ -59,7 +59,15 @@ class BlogController extends Controller
         $validated['excerpt'] = isset($validated['excerpt']) ? trim(strip_tags($validated['excerpt'])) : null;
 
         if ($request->hasFile('image')) {
-            $validated['image'] = $request->file('image')->store('blogs', 'public');
+            $stored = $request->file('image')->store('blogs', 'public');
+
+            if (! $stored) {
+                return back()->withErrors([
+                    'image' => 'Gambar gagal disimpan. Coba unggah ulang.',
+                ]);
+            }
+
+            $validated['image'] = $stored;
         }
 
         if ($request->boolean('published') && ! $blog->published_at) {

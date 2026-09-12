@@ -17,6 +17,14 @@ class SiteSettingController extends Controller
         'favicon',
     ];
 
+    /**
+     * Kunci pengaturan yang berisi path berkas gambar.
+     * Hanya boleh diubah lewat uploadSeoImage() / deleteSeoImage().
+     */
+    private const IMAGE_KEYS = [
+        'hero_image', 'logo_light', 'favicon', 'og_image', 'twitter_image',
+    ];
+
     public function edit()
     {
         $settings = [
@@ -93,6 +101,13 @@ class SiteSettingController extends Controller
         ]);
 
         foreach ($validated as $key => $value) {
+            // Kolom gambar diurus lewat uploadSeoImage/deleteSeoImage.
+            // Jangan pernah ditimpa dari form biasa, supaya gambar tidak
+            // terhapus atau tertimpa saat pengguna hanya mengedit teks.
+            if (in_array($key, self::IMAGE_KEYS, true)) {
+                continue;
+            }
+
             SiteSetting::set($key, $value ?? '');
         }
 
@@ -107,15 +122,26 @@ class SiteSettingController extends Controller
         ]);
 
         $type = $request->input('type');
-        $old = SiteSetting::get($type, '');
 
-        if ($old && Storage::disk('public')->exists($old)) {
-            Storage::disk('public')->delete($old);
-        }
-
+        // Simpan berkas baru dulu. Berkas lama BARU dihapus setelah
+        // berkas baru benar-benar tersimpan, supaya gambar tidak bisa
+        // hilang kalau proses unggah gagal di tengah jalan.
         $folder = str_starts_with($type, 'logo') ? 'logo' : 'seo';
         $path = $request->file('image')->store($folder, 'public');
+
+        if (! $path) {
+            return back()->withErrors([
+                'image' => 'Gambar gagal disimpan. Coba unggah ulang.',
+            ]);
+        }
+
+        $old = SiteSetting::get($type, '');
+
         SiteSetting::set($type, $path);
+
+        if ($old && $old !== $path && Storage::disk('public')->exists($old)) {
+            Storage::disk('public')->delete($old);
+        }
 
         return back()->with('success', 'Gambar berhasil diperbarui.');
     }

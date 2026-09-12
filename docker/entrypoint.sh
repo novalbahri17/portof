@@ -9,12 +9,33 @@ echo "🚀 Starting Laravel application..."
 
 # ---- Ensure storage structure ----
 mkdir -p \
-    storage/app/public \
+    storage/app/private \
+    storage/app/public/blogs \
+    storage/app/public/certifications/images \
+    storage/app/public/certifications/pdfs \
+    storage/app/public/logo \
+    storage/app/public/projects \
+    storage/app/public/seo \
     storage/framework/cache/data \
     storage/framework/sessions \
     storage/framework/views \
     storage/logs \
     bootstrap/cache
+
+# Folder kosong tidak ikut tersimpan di image/volume, jadi pastikan
+# setiap folder unggahan punya penanda supaya tidak pernah hilang.
+for dir in \
+    storage/app/private \
+    storage/app/public/blogs \
+    storage/app/public/certifications/images \
+    storage/app/public/certifications/pdfs \
+    storage/app/public/logo \
+    storage/app/public/projects \
+    storage/app/public/seo; do
+    if [ ! -f "$dir/.gitkeep" ]; then
+        : > "$dir/.gitkeep"
+    fi
+done
 
 chown -R www-data:www-data storage bootstrap/cache
 chmod -R 775 storage bootstrap/cache
@@ -43,15 +64,22 @@ fi
 # ---- Storage link ----
 php artisan storage:link --force 2>/dev/null || true
 
-# ---- Seed admin & data contoh on first run ----
-# Cek jumlah user: kalau belum ada, artinya belum pernah di-seed.
+# ---- Seed admin on first run ----
+# PENTING: hanya AdminSeeder yang boleh jalan otomatis.
+# NouvalProfileSeeder berisi data contoh dan MENIMPA data asli
+# (termasuk gambar & sertifikat yang sudah diunggah), jadi hanya
+# dijalankan kalau memang diminta lewat SEED_DATA=1.
 SEEDED=$(php artisan tinker --execute="echo \App\Models\User::count() > 0 ? 'yes' : 'no';" 2>/dev/null | tail -1)
 if [ "$SEEDED" != "yes" ]; then
-    echo "🌱 Database kosong — menjalankan seeder..."
+    echo "🌱 Belum ada user — membuat akun admin..."
     php artisan db:seed --class=AdminSeeder --force || echo "⚠️  AdminSeeder gagal"
-    php artisan db:seed --class=NouvalProfileSeeder --force || echo "⚠️  NouvalProfileSeeder gagal"
 else
     echo "✅ Database sudah terisi, lewati seeding"
+fi
+
+if [ "$SEED_DATA" = "1" ]; then
+    echo "⚠️  SEED_DATA=1 — menjalankan NouvalProfileSeeder (data contoh akan menimpa data yang ada)..."
+    php artisan db:seed --class=NouvalProfileSeeder --force || echo "⚠️  NouvalProfileSeeder gagal"
 fi
 
 # ---- Generate Wayfinder routes ----

@@ -4,6 +4,7 @@ import { Plus, Pencil, Trash2, FileText, X, ImagePlus } from 'lucide-vue-next';
 import Swal from 'sweetalert2';
 import { computed, ref } from 'vue';
 import FileInput from '@/components/FileInput.vue';
+import StorageImage from '@/components/StorageImage.vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 
 type Certification = {
@@ -270,10 +271,10 @@ async function destroy(certification: Certification) {
                                     :key="path"
                                     class="group relative"
                                 >
-                                    <img
-                                        :src="`/storage/${path}`"
-                                        alt=""
-                                        class="h-16 w-24 rounded-lg border border-border object-cover"
+                                    <StorageImage
+                                        :path="path"
+                                        :show-label="false"
+                                        image-class="h-16 w-24 rounded-lg border border-border object-cover"
                                     />
                                     <button
                                         type="button"
@@ -421,15 +422,11 @@ async function destroy(certification: Certification) {
                     >
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-3">
-                                <img
-                                    v-if="certification.images.length"
-                                    :src="`/storage/${certification.images[0]}`"
+                                <StorageImage
+                                    :path="certification.images[0]"
+                                    :show-label="false"
                                     :alt="certification.title"
-                                    class="h-10 w-16 rounded border border-border object-cover"
-                                />
-                                <div
-                                    v-else
-                                    class="h-10 w-16 rounded border border-dashed border-border"
+                                    image-class="h-10 w-16 rounded border border-border object-cover"
                                 />
                                 <div>
                                     <p class="font-medium text-foreground">

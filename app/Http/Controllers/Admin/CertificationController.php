@@ -74,18 +74,21 @@ class CertificationController extends Controller
         $existing = $certification->imageList();
         $keep = $request->input('keep_images', $existing);
 
-        // Hapus berkas yang dibuang dari galeri
-        foreach (array_diff($existing, $keep) as $removed) {
-            if (Storage::disk('public')->exists($removed)) {
-                Storage::disk('public')->delete($removed);
-            }
-        }
-
         $paths = array_values(array_intersect($existing, $keep));
 
-        // Tambahkan gambar baru
+        // Unggah gambar baru DULU. Berkas lama baru dihapus setelah
+        // proses simpan berhasil, supaya gambar tidak bisa hilang kalau
+        // unggahan gagal di tengah jalan.
         foreach ($request->file('images', []) as $file) {
-            $paths[] = $file->store('certifications/images', 'public');
+            $stored = $file->store('certifications/images', 'public');
+
+            if (! $stored) {
+                return back()->withErrors([
+                    'images' => 'Ada gambar yang gagal disimpan. Coba unggah ulang.',
+                ]);
+            }
+
+            $paths[] = $stored;
         }
 
         if ($paths === []) {
@@ -102,14 +105,29 @@ class CertificationController extends Controller
         $certification->sort_order = $validated['sort_order'] ?? 0;
 
         if ($request->hasFile('certificate_file')) {
-            if ($certification->certificate_file && Storage::disk('public')->exists($certification->certificate_file)) {
-                Storage::disk('public')->delete($certification->certificate_file);
+            $pdf = $request->file('certificate_file')->store('certifications/pdfs', 'public');
+
+            if (! $pdf) {
+                return back()->withErrors([
+                    'certificate_file' => 'PDF gagal disimpan. Coba unggah ulang.',
+                ]);
             }
 
-            $certification->certificate_file = $request->file('certificate_file')->store('certifications/pdfs', 'public');
+            $oldPdf = $certification->certificate_file;
+
+            $certification->certificate_file = $pdf;
+
+            if ($oldPdf && $oldPdf !== $pdf && Storage::disk('public')->exists($oldPdf)) {
+                Storage::disk('public')->delete($oldPdf);
+            }
         }
 
         $certification->save();
+
+        // Baru sekarang aman menghapus berkas galeri yang dibuang.
+        foreach (array_diff($existing, $paths) as $removed) {
+            Storage::disk('public')->delete($removed);
+        }
 
         return back()->with('success', 'Sertifikasi berhasil diperbarui.');
     }

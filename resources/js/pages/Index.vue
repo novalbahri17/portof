@@ -48,6 +48,7 @@ import Swal from 'sweetalert2';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { Component } from 'vue';
 import Navbar from '@/components/Navbar.vue';
+import StorageImage from '@/components/StorageImage.vue';
 import { useAppearance } from '@/composables/useAppearance';
 
 type Project = {
@@ -659,10 +660,11 @@ onBeforeUnmount(() => {
                                 height: `${heroImageSizePx}px`,
                             }"
                         >
-                            <img
-                                :src="`/storage/${heroImage}`"
+                            <StorageImage
+                                :path="heroImage"
                                 alt="Foto profil"
-                                class="h-full w-full object-cover"
+                                :show-label="false"
+                                image-class="h-full w-full object-cover"
                             />
                         </div>
                         <div
@@ -1385,11 +1387,14 @@ onBeforeUnmount(() => {
                             class="group flex h-full flex-col overflow-hidden rounded-xl border border-border/50 bg-white/50 backdrop-blur-lg transition-colors hover:border-primary/30 dark:bg-white/5"
                         >
                             <div class="relative">
-                                <img
-                                    v-if="certification.images.length"
-                                    :src="`/storage/${certification.images[activeCertImage(certification)]}`"
+                                <StorageImage
+                                    :path="
+                                        certification.images[
+                                            activeCertImage(certification)
+                                        ]
+                                    "
                                     :alt="certification.title"
-                                    class="h-44 w-full cursor-zoom-in object-cover"
+                                    image-class="h-44 w-full cursor-zoom-in object-cover"
                                     @click="
                                         openCertificate(
                                             certification.images,
@@ -1397,13 +1402,6 @@ onBeforeUnmount(() => {
                                         )
                                     "
                                 />
-                                <div
-                                    v-else
-                                    class="flex h-44 w-full items-center justify-center bg-white/30 text-xs text-muted-foreground dark:bg-white/5"
-                                >
-                                    Tanpa gambar
-                                </div>
-
                                 <span
                                     v-if="certification.images.length > 1"
                                     class="pointer-events-none absolute top-2 right-2 rounded-full bg-black/60 px-2 py-0.5 text-[11px] text-white backdrop-blur-sm"
