@@ -3,38 +3,9 @@ set -e
 
 echo "🚀 Starting Laravel application..."
 
-# ---- Wait for database ----
-# Mendukung MySQL/MariaDB. Untuk driver lain, tunggu via TCP sederhana.
-DB_WAIT_TIMEOUT="${DB_WAIT_TIMEOUT:-60}"
-waited=0
-
-if [ "${DB_CONNECTION:-mysql}" = "mysql" ] || [ "${DB_CONNECTION:-mysql}" = "mariadb" ]; then
-    echo "⏳ Waiting for MySQL at ${DB_HOST:-127.0.0.1}:${DB_PORT:-3306}..."
-    until mysqladmin ping \
-            -h "${DB_HOST:-127.0.0.1}" \
-            -P "${DB_PORT:-3306}" \
-            -u "${DB_USERNAME:-root}" \
-            ${DB_PASSWORD:+-p"${DB_PASSWORD}"} \
-            --silent --connect-timeout=3 >/dev/null 2>&1; do
-        waited=$((waited + 2))
-        if [ "$waited" -ge "$DB_WAIT_TIMEOUT" ]; then
-            echo "⚠️  MySQL tidak merespons setelah ${DB_WAIT_TIMEOUT}s — lanjut saja (migrasi akan mencoba lagi)"
-            break
-        fi
-        sleep 2
-    done
-else
-    echo "⏳ Waiting for database at ${DB_HOST:-127.0.0.1}:${DB_PORT:-5432}..."
-    until php -r "exit(@fsockopen(getenv('DB_HOST') ?: '127.0.0.1', (int)(getenv('DB_PORT') ?: 5432)) ? 0 : 1);" 2>/dev/null; do
-        waited=$((waited + 2))
-        if [ "$waited" -ge "$DB_WAIT_TIMEOUT" ]; then
-            echo "⚠️  Database tidak merespons setelah ${DB_WAIT_TIMEOUT}s — lanjut saja"
-            break
-        fi
-        sleep 2
-    done
-fi
-echo "✅ Database siap"
+# ---- Database ----
+# MySQL berada di luar Dokploy (server eksternal, nyala 24 jam),
+# jadi tidak perlu ditunggu. Langsung lanjut ke cache & migrasi.
 
 # ---- Ensure storage structure ----
 mkdir -p \
@@ -61,21 +32,26 @@ php artisan route:cache
 php artisan view:cache
 
 # ---- Run migrations ----
+# Sengaja tidak pakai `set -e` di sini: kalau MySQL sempat tidak terjangkau,
+# kita tetap mau nginx/php-fpm nyala dan log errornya kelihatan,
+# bukan container mati diam-diam.
 echo "🗄️  Running migrations..."
-php artisan migrate --force
+if ! php artisan migrate --force; then
+    echo "❌ Migrasi gagal — cek kredensial DB_HOST/DB_USERNAME/DB_PASSWORD dan whitelist IP."
+fi
 
 # ---- Storage link ----
 php artisan storage:link --force 2>/dev/null || true
 
-# ---- Seed admin on first run ----
-# Check if admin user exists as indicator that seeding was already done
-SEEDED=$(php artisan tinker --execute="echo \App\Models\User::where('is_admin', true)->exists() ? 'yes' : 'no';" 2>/dev/null | tail -1)
+# ---- Seed admin & data contoh on first run ----
+# Cek jumlah user: kalau belum ada, artinya belum pernah di-seed.
+SEEDED=$(php artisan tinker --execute="echo \App\Models\User::count() > 0 ? 'yes' : 'no';" 2>/dev/null | tail -1)
 if [ "$SEEDED" != "yes" ]; then
-    echo "🌱 Running initial seeders..."
-    php artisan db:seed --class=AdminSeeder --force
-    php artisan db:seed --class=PortfolioSeeder --force
+    echo "🌱 Database kosong — menjalankan seeder..."
+    php artisan db:seed --class=AdminSeeder --force || echo "⚠️  AdminSeeder gagal"
+    php artisan db:seed --class=NouvalProfileSeeder --force || echo "⚠️  NouvalProfileSeeder gagal"
 else
-    echo "✅ Database already seeded, skipping"
+    echo "✅ Database sudah terisi, lewati seeding"
 fi
 
 # ---- Generate Wayfinder routes ----
