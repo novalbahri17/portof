@@ -1,0 +1,50 @@
+# Dependencies (installed in build stages)
+node_modules
+vendor
+
+# Build output (built in frontend stage)
+public/build
+public/hot
+
+# Git
+.git
+.gitattributes
+.gitignore
+
+# IDE
+.vscode
+.idea
+.fleet
+.zed
+
+# Dev / test files
+tests
+phpunit.xml
+pint.json
+.prettierrc
+.prettierignore
+eslint.config.js
+.editorconfig
+
+# Docker meta (avoid recursive context)
+docker.txt
+project.txt
+docker-compose.yml
+README.md
+LICENSE
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env files (injected at runtime)
+.env
+.env.backup
+.env.production
+
+# SQLite dev database
+database/database.sqlite
+
+# Storage logs (mounted as volume)
+storage/logs/*
+!storage/logs/.gitignore

@@ -1,0 +1,15 @@
+ayudame a construir mi portafolio web soy desarrollador especializado en laravel y vue 
+
+Mi idea hacer un proyecto modo dark y light que tenga un diseño estilo bento siguiendo mismo diseño y lineas graficas
+de laravel 12 me gustan. 
+
+Quiero un espacio de mi, hobbys, side projects, portafolio, blogs, contacto.
+
+Quiero que la pagina welcome la cambies por index que sera eun landing one scroll que tendra todo lo anterior
+
+me gusta mucho tambien el navbar blur mi logo esta en public / logo-white y logo-dark en png para que pueda estar especial para cada modo
+
+la idea es tambien crear un admin panel con usuario super admin el cual pueda cargar side projects, porfolios y blogs y guardar registro contactos,
+ademas poder modificar mi espacio que hablo de mi y hobbys. 
+
+Considera que este proyecto esta en laravel 12 con vite, vue3 y tailwind.
