@@ -154,6 +154,7 @@ SVG;
             ['title' => 'Junior Web Programmer'],
             [
                 'description' => 'Sertifikasi kompetensi Junior Web Programmer dari Badan Nasional Sertifikasi Profesi (BNSP) melalui LSP UNTAG Surabaya. Masa berlaku: Januari 2026 – Januari 2029.',
+                'images' => ['certifications/junior-web-programmer.svg'],
                 'image' => 'certifications/junior-web-programmer.svg',
                 'published' => true,
                 'sort_order' => 1,

@@ -1,38 +1,54 @@
 <script setup lang="ts">
 import { Head, useForm, router } from '@inertiajs/vue3';
-import AdminLayout from '@/layouts/AdminLayout.vue';
+import { Plus, Pencil, Trash2, FileText, X, ImagePlus } from 'lucide-vue-next';
 import Swal from 'sweetalert2';
-import { Plus, Pencil, Trash2, FileText } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
+import AdminLayout from '@/layouts/AdminLayout.vue';
 
 type Certification = {
     id: number;
     title: string;
     description: string;
-    image: string;
+    images: string[];
     certificate_file: string | null;
     published: boolean;
     sort_order: number;
 };
 
-const props = defineProps<{ certifications: Certification[] }>();
+defineProps<{ certifications: Certification[] }>();
 const showForm = ref(false);
 const editing = ref<Certification | null>(null);
+const fileInput = ref<HTMLInputElement | null>(null);
 
 const form = useForm({
     title: '',
     description: '',
-    image: null as File | null,
+    images: [] as File[],
+    keep_images: [] as string[],
     certificate_file: null as File | null,
     published: false,
     sort_order: 0,
 });
 
+/** Object URL untuk pratinjau gambar yang baru dipilih. */
+const previews = computed(() =>
+    form.images.map((file) => ({
+        name: file.name,
+        url: URL.createObjectURL(file),
+    })),
+);
+
+function resetFileInput() {
+    if (fileInput.value) fileInput.value.value = '';
+}
+
 function openCreate() {
     editing.value = null;
     form.reset();
-    form.image = null;
+    form.images = [];
+    form.keep_images = [];
     form.certificate_file = null;
+    resetFileInput();
     showForm.value = true;
 }
 
@@ -40,11 +56,27 @@ function openEdit(certification: Certification) {
     editing.value = certification;
     form.title = certification.title;
     form.description = certification.description;
+    form.images = [];
+    form.keep_images = [...certification.images];
+    form.certificate_file = null;
     form.published = certification.published;
     form.sort_order = certification.sort_order;
-    form.image = null;
-    form.certificate_file = null;
+    resetFileInput();
     showForm.value = true;
+}
+
+function onPickImages(event: Event) {
+    const files = Array.from((event.target as HTMLInputElement).files ?? []);
+    form.images = [...form.images, ...files];
+}
+
+function removeNewImage(index: number) {
+    form.images = form.images.filter((_, i) => i !== index);
+    resetFileInput();
+}
+
+function removeExistingImage(path: string) {
+    form.keep_images = form.keep_images.filter((p) => p !== path);
 }
 
 function submit() {
@@ -58,13 +90,18 @@ function submit() {
             showForm.value = false;
             editing.value = null;
             form.reset();
-            form.image = null;
+            form.images = [];
+            form.keep_images = [];
             form.certificate_file = null;
+            resetFileInput();
         },
     };
 
     if (editing.value) {
-        form.post(url, { ...opts, headers: { 'X-HTTP-Method-Override': 'PUT' } });
+        form.post(url, {
+            ...opts,
+            headers: { 'X-HTTP-Method-Override': 'PUT' },
+        });
         return;
     }
 
@@ -73,12 +110,13 @@ function submit() {
 
 async function destroy(certification: Certification) {
     const isDarkMode =
-        typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+        typeof document !== 'undefined' &&
+        document.documentElement.classList.contains('dark');
 
     const result = await Swal.fire({
         icon: 'warning',
         title: 'Hapus sertifikasi?',
-        text: 'Tindakan ini juga akan menghapus gambar dan diploma yang terkait.',
+        text: 'Tindakan ini juga akan menghapus semua gambar dan diploma yang terkait.',
         showCancelButton: true,
         confirmButtonText: 'Ya, hapus',
         cancelButtonText: 'Batal',
@@ -111,7 +149,10 @@ async function destroy(certification: Certification) {
             </button>
         </div>
 
-        <div v-if="showForm" class="mb-6 rounded-xl border border-border bg-card p-6 shadow-sm">
+        <div
+            v-if="showForm"
+            class="mb-6 rounded-xl border border-border bg-card p-6 shadow-sm"
+        >
             <h3 class="mb-4 text-lg font-semibold text-foreground">
                 {{ editing ? 'Edit' : 'Tambah' }} sertifikasi
             </h3>
@@ -119,72 +160,204 @@ async function destroy(certification: Certification) {
             <form class="space-y-4" @submit.prevent="submit">
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div>
-                        <label class="mb-1 block text-sm font-medium text-foreground">Judul</label>
+                        <label
+                            class="mb-1 block text-sm font-medium text-foreground"
+                            >Judul</label
+                        >
                         <input
                             v-model="form.title"
                             type="text"
                             required
                             class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
                         />
-                        <p v-if="form.errors.title" class="mt-1 text-xs text-destructive">{{ form.errors.title }}</p>
+                        <p
+                            v-if="form.errors.title"
+                            class="mt-1 text-xs text-destructive"
+                        >
+                            {{ form.errors.title }}
+                        </p>
                     </div>
 
                     <div>
-                        <label class="mb-1 block text-sm font-medium text-foreground">Urutan</label>
+                        <label
+                            class="mb-1 block text-sm font-medium text-foreground"
+                            >Urutan</label
+                        >
                         <input
                             v-model.number="form.sort_order"
                             type="number"
                             class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
                         />
-                        <p v-if="form.errors.sort_order" class="mt-1 text-xs text-destructive">{{ form.errors.sort_order }}</p>
+                        <p
+                            v-if="form.errors.sort_order"
+                            class="mt-1 text-xs text-destructive"
+                        >
+                            {{ form.errors.sort_order }}
+                        </p>
                     </div>
                 </div>
 
                 <div>
-                    <label class="mb-1 block text-sm font-medium text-foreground">Deskripsi</label>
+                    <label
+                        class="mb-1 block text-sm font-medium text-foreground"
+                        >Deskripsi</label
+                    >
                     <textarea
                         v-model="form.description"
                         rows="4"
                         required
                         class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
                     />
-                    <p v-if="form.errors.description" class="mt-1 text-xs text-destructive">{{ form.errors.description }}</p>
+                    <p
+                        v-if="form.errors.description"
+                        class="mt-1 text-xs text-destructive"
+                    >
+                        {{ form.errors.description }}
+                    </p>
                 </div>
 
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div>
-                        <label class="mb-1 block text-sm font-medium text-foreground">
-                            Gambar {{ editing ? '(opsional saat edit)' : '(wajib)' }}
+                        <label
+                            class="mb-1 block text-sm font-medium text-foreground"
+                        >
+                            Gambar
+                            <span class="font-normal text-muted-foreground">
+                                (bisa pilih banyak{{
+                                    editing ? '' : ', minimal 1'
+                                }})
+                            </span>
                         </label>
                         <input
+                            ref="fileInput"
                             type="file"
                             accept="image/*"
-                            class="text-sm"
-                            @change="(e: Event) => form.image = ((e.target as HTMLInputElement).files ?? [])[0] || null"
+                            multiple
+                            class="w-full cursor-pointer rounded-lg border border-dashed border-input bg-background px-3 py-2 text-sm file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-primary/10 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-primary"
+                            @change="onPickImages"
                         />
-                        <p v-if="form.errors.image" class="mt-1 text-xs text-destructive">{{ form.errors.image }}</p>
+                        <p class="mt-1 text-xs text-muted-foreground">
+                            Tahan Ctrl (atau Shift) saat memilih untuk mengambil
+                            beberapa gambar sekaligus. Maks 2 MB per gambar.
+                        </p>
+                        <p
+                            v-if="form.errors.images"
+                            class="mt-1 text-xs text-destructive"
+                        >
+                            {{ form.errors.images }}
+                        </p>
+                        <p
+                            v-for="(err, i) in Object.entries(form.errors).find(
+                                ([k]) => k.startsWith('images.'),
+                            )?.[1]
+                                ? [
+                                      Object.entries(form.errors).find(([k]) =>
+                                          k.startsWith('images.'),
+                                      )![1],
+                                  ]
+                                : []"
+                            :key="i"
+                            class="mt-1 text-xs text-destructive"
+                        >
+                            {{ err }}
+                        </p>
 
-                        <div v-if="editing?.image" class="mt-2 flex items-center gap-2">
-                            <img
-                                :src="`/storage/${editing.image}`"
-                                :alt="editing.title"
-                                class="h-12 w-20 rounded border border-border object-cover"
-                            />
-                            <span class="text-xs text-muted-foreground">Gambar saat ini</span>
+                        <!-- Gambar tersimpan -->
+                        <div
+                            v-if="editing && form.keep_images.length"
+                            class="mt-3"
+                        >
+                            <p
+                                class="mb-1.5 text-xs font-medium text-muted-foreground"
+                            >
+                                Gambar tersimpan ({{ form.keep_images.length }})
+                            </p>
+                            <div class="flex flex-wrap gap-2">
+                                <div
+                                    v-for="path in form.keep_images"
+                                    :key="path"
+                                    class="group relative"
+                                >
+                                    <img
+                                        :src="`/storage/${path}`"
+                                        alt=""
+                                        class="h-16 w-24 rounded-lg border border-border object-cover"
+                                    />
+                                    <button
+                                        type="button"
+                                        title="Hapus gambar ini"
+                                        class="absolute -top-1.5 -right-1.5 rounded-full bg-destructive p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+                                        @click="removeExistingImage(path)"
+                                    >
+                                        <X class="h-3 w-3" />
+                                    </button>
+                                </div>
+                            </div>
                         </div>
+
+                        <!-- Pratinjau gambar baru -->
+                        <div v-if="previews.length" class="mt-3">
+                            <p
+                                class="mb-1.5 text-xs font-medium text-muted-foreground"
+                            >
+                                Akan diunggah ({{ previews.length }})
+                            </p>
+                            <div class="flex flex-wrap gap-2">
+                                <div
+                                    v-for="(preview, index) in previews"
+                                    :key="preview.url"
+                                    class="group relative"
+                                >
+                                    <img
+                                        :src="preview.url"
+                                        :alt="preview.name"
+                                        class="h-16 w-24 rounded-lg border border-primary/40 object-cover"
+                                    />
+                                    <button
+                                        type="button"
+                                        title="Batalkan gambar ini"
+                                        class="absolute -top-1.5 -right-1.5 rounded-full bg-destructive p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+                                        @click="removeNewImage(index)"
+                                    >
+                                        <X class="h-3 w-3" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <p
+                            v-else-if="editing && !form.keep_images.length"
+                            class="mt-2 inline-flex items-center gap-1.5 text-xs text-amber-500"
+                        >
+                            <ImagePlus class="h-3.5 w-3.5" />
+                            Belum ada gambar — pilih minimal satu sebelum
+                            menyimpan.
+                        </p>
                     </div>
 
                     <div>
-                        <label class="mb-1 block text-sm font-medium text-foreground">
-                            Diploma (PDF opcional)
+                        <label
+                            class="mb-1 block text-sm font-medium text-foreground"
+                        >
+                            Diploma (PDF opsional)
                         </label>
                         <input
                             type="file"
                             accept="application/pdf"
-                            class="text-sm"
-                            @change="(e: Event) => form.certificate_file = ((e.target as HTMLInputElement).files ?? [])[0] || null"
+                            class="w-full cursor-pointer rounded-lg border border-dashed border-input bg-background px-3 py-2 text-sm file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-primary/10 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-primary"
+                            @change="
+                                (e: Event) =>
+                                    (form.certificate_file =
+                                        ((e.target as HTMLInputElement).files ??
+                                            [])[0] || null)
+                            "
                         />
-                        <p v-if="form.errors.certificate_file" class="mt-1 text-xs text-destructive">{{ form.errors.certificate_file }}</p>
+                        <p
+                            v-if="form.errors.certificate_file"
+                            class="mt-1 text-xs text-destructive"
+                        >
+                            {{ form.errors.certificate_file }}
+                        </p>
 
                         <a
                             v-if="editing?.certificate_file"
@@ -199,7 +372,11 @@ async function destroy(certification: Certification) {
                 </div>
 
                 <label class="flex items-center gap-2 text-sm text-foreground">
-                    <input v-model="form.published" type="checkbox" class="rounded" />
+                    <input
+                        v-model="form.published"
+                        type="checkbox"
+                        class="rounded"
+                    />
                     Tampil di situs publik
                 </label>
 
@@ -226,10 +403,26 @@ async function destroy(certification: Certification) {
             <table class="w-full text-sm">
                 <thead class="border-b border-border bg-muted/50">
                     <tr>
-                        <th class="px-4 py-3 text-left font-medium text-muted-foreground">Judul</th>
-                        <th class="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
-                        <th class="px-4 py-3 text-left font-medium text-muted-foreground">Urutan</th>
-                        <th class="px-4 py-3 text-right font-medium text-muted-foreground">Aksi</th>
+                        <th
+                            class="px-4 py-3 text-left font-medium text-muted-foreground"
+                        >
+                            Judul
+                        </th>
+                        <th
+                            class="px-4 py-3 text-left font-medium text-muted-foreground"
+                        >
+                            Status
+                        </th>
+                        <th
+                            class="px-4 py-3 text-left font-medium text-muted-foreground"
+                        >
+                            Urutan
+                        </th>
+                        <th
+                            class="px-4 py-3 text-right font-medium text-muted-foreground"
+                        >
+                            Aksi
+                        </th>
                     </tr>
                 </thead>
 
@@ -242,25 +435,55 @@ async function destroy(certification: Certification) {
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-3">
                                 <img
-                                    :src="`/storage/${certification.image}`"
+                                    v-if="certification.images.length"
+                                    :src="`/storage/${certification.images[0]}`"
                                     :alt="certification.title"
                                     class="h-10 w-16 rounded border border-border object-cover"
                                 />
+                                <div
+                                    v-else
+                                    class="h-10 w-16 rounded border border-dashed border-border"
+                                />
                                 <div>
-                                    <p class="font-medium text-foreground">{{ certification.title }}</p>
-                                    <p class="line-clamp-1 text-xs text-muted-foreground">{{ certification.description }}</p>
+                                    <p class="font-medium text-foreground">
+                                        {{ certification.title }}
+                                        <span
+                                            v-if="
+                                                certification.images.length > 1
+                                            "
+                                            class="ml-1.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-normal text-primary"
+                                        >
+                                            {{ certification.images.length }}
+                                            gambar
+                                        </span>
+                                    </p>
+                                    <p
+                                        class="line-clamp-1 text-xs text-muted-foreground"
+                                    >
+                                        {{ certification.description }}
+                                    </p>
                                 </div>
                             </div>
                         </td>
                         <td class="px-4 py-3">
                             <span
-                                :class="certification.published ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'"
+                                :class="
+                                    certification.published
+                                        ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                                        : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
+                                "
                                 class="rounded-full px-2 py-0.5 text-xs"
                             >
-                                {{ certification.published ? 'Tampil' : 'Tersembunyi' }}
+                                {{
+                                    certification.published
+                                        ? 'Tampil'
+                                        : 'Tersembunyi'
+                                }}
                             </span>
                         </td>
-                        <td class="px-4 py-3 text-muted-foreground">{{ certification.sort_order }}</td>
+                        <td class="px-4 py-3 text-muted-foreground">
+                            {{ certification.sort_order }}
+                        </td>
                         <td class="px-4 py-3 text-right">
                             <button
                                 class="mr-2 text-muted-foreground hover:text-foreground"
@@ -277,7 +500,10 @@ async function destroy(certification: Certification) {
                         </td>
                     </tr>
                     <tr v-if="!certifications.length">
-                        <td colspan="4" class="px-4 py-8 text-center text-muted-foreground">
+                        <td
+                            colspan="4"
+                            class="px-4 py-8 text-center text-muted-foreground"
+                        >
                             Belum ada sertifikasi.
                         </td>
                     </tr>

@@ -25,6 +25,7 @@ import {
     IconCertificate,
     IconChevronLeft,
     IconChevronRight,
+    IconX,
     IconSchool,
     IconMapPin,
     IconSparkles,
@@ -44,7 +45,7 @@ import {
     IconDatabase,
 } from '@tabler/icons-vue';
 import Swal from 'sweetalert2';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { Component } from 'vue';
 import Navbar from '@/components/Navbar.vue';
 import { useAppearance } from '@/composables/useAppearance';
@@ -74,7 +75,7 @@ type Certification = {
     id: number;
     title: string;
     description: string;
-    image: string;
+    images: string[];
     certificate_file: string | null;
     published: boolean;
     sort_order: number;
@@ -342,6 +343,55 @@ const isCertificationPaused = ref(false);
 const prefersReducedMotion = ref(false);
 let certificationAutoplay: ReturnType<typeof setInterval> | null = null;
 let reducedMotionQuery: MediaQueryList | null = null;
+
+/** Lightbox galeri sertifikasi. */
+const lightbox = ref<{ images: string[]; index: number } | null>(null);
+
+/** Indeks gambar aktif per kartu sertifikasi. */
+const certImageIndex = ref<Record<number, number>>({});
+
+function activeCertImage(certification: Certification): number {
+    const index = certImageIndex.value[certification.id] ?? 0;
+    return Math.min(index, Math.max(0, certification.images.length - 1));
+}
+
+function setCertImage(id: number, index: number) {
+    certImageIndex.value = { ...certImageIndex.value, [id]: index };
+}
+
+function openCertificate(images: string[], index = 0) {
+    if (!images.length) return;
+    lightbox.value = { images, index };
+}
+
+function closeLightbox() {
+    lightbox.value = null;
+}
+
+function stepLightbox(delta: number) {
+    if (!lightbox.value) return;
+    const total = lightbox.value.images.length;
+    lightbox.value.index = (lightbox.value.index + delta + total) % total;
+}
+
+function onLightboxKey(event: KeyboardEvent) {
+    if (!lightbox.value) return;
+    if (event.key === 'Escape') closeLightbox();
+    if (event.key === 'ArrowRight') stepLightbox(1);
+    if (event.key === 'ArrowLeft') stepLightbox(-1);
+}
+
+watch(lightbox, (value) => {
+    if (typeof document === 'undefined') return;
+
+    if (value) {
+        document.body.style.overflow = 'hidden';
+        window.addEventListener('keydown', onLightboxKey);
+    } else {
+        document.body.style.overflow = '';
+        window.removeEventListener('keydown', onLightboxKey);
+    }
+});
 
 const certificationMaxStartIndex = computed(() => {
     return Math.max(
@@ -1334,11 +1384,107 @@ onBeforeUnmount(() => {
                         <div
                             class="group flex h-full flex-col overflow-hidden rounded-xl border border-border/50 bg-white/50 backdrop-blur-lg transition-colors hover:border-primary/30 dark:bg-white/5"
                         >
-                            <img
-                                :src="`/storage/${certification.image}`"
-                                :alt="certification.title"
-                                class="h-44 w-full object-cover"
-                            />
+                            <div class="relative">
+                                <img
+                                    v-if="certification.images.length"
+                                    :src="`/storage/${certification.images[activeCertImage(certification)]}`"
+                                    :alt="certification.title"
+                                    class="h-44 w-full cursor-zoom-in object-cover"
+                                    @click="
+                                        openCertificate(
+                                            certification.images,
+                                            activeCertImage(certification),
+                                        )
+                                    "
+                                />
+                                <div
+                                    v-else
+                                    class="flex h-44 w-full items-center justify-center bg-white/30 text-xs text-muted-foreground dark:bg-white/5"
+                                >
+                                    Tanpa gambar
+                                </div>
+
+                                <span
+                                    v-if="certification.images.length > 1"
+                                    class="pointer-events-none absolute top-2 right-2 rounded-full bg-black/60 px-2 py-0.5 text-[11px] text-white backdrop-blur-sm"
+                                >
+                                    {{ activeCertImage(certification) + 1 }} /
+                                    {{ certification.images.length }}
+                                </span>
+
+                                <template
+                                    v-if="certification.images.length > 1"
+                                >
+                                    <button
+                                        type="button"
+                                        aria-label="Gambar sebelumnya"
+                                        class="absolute top-1/2 left-2 -translate-y-1/2 rounded-full bg-black/50 p-1.5 text-white opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+                                        @click.stop="
+                                            setCertImage(
+                                                certification.id,
+                                                (activeCertImage(
+                                                    certification,
+                                                ) -
+                                                    1 +
+                                                    certification.images
+                                                        .length) %
+                                                    certification.images.length,
+                                            )
+                                        "
+                                    >
+                                        <IconChevronLeft
+                                            class="h-4 w-4"
+                                            :stroke-width="1.75"
+                                        />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        aria-label="Gambar berikutnya"
+                                        class="absolute top-1/2 right-2 -translate-y-1/2 rounded-full bg-black/50 p-1.5 text-white opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+                                        @click.stop="
+                                            setCertImage(
+                                                certification.id,
+                                                (activeCertImage(
+                                                    certification,
+                                                ) +
+                                                    1) %
+                                                    certification.images.length,
+                                            )
+                                        "
+                                    >
+                                        <IconChevronRight
+                                            class="h-4 w-4"
+                                            :stroke-width="1.75"
+                                        />
+                                    </button>
+
+                                    <div
+                                        class="absolute inset-x-0 bottom-2 flex justify-center gap-1.5"
+                                    >
+                                        <button
+                                            v-for="(
+                                                img, imgIndex
+                                            ) in certification.images"
+                                            :key="imgIndex"
+                                            type="button"
+                                            :aria-label="`Gambar ${imgIndex + 1}`"
+                                            class="h-1.5 rounded-full transition-all"
+                                            :class="
+                                                imgIndex ===
+                                                activeCertImage(certification)
+                                                    ? 'w-4 bg-white'
+                                                    : 'w-1.5 bg-white/50 hover:bg-white/80'
+                                            "
+                                            @click.stop="
+                                                setCertImage(
+                                                    certification.id,
+                                                    imgIndex,
+                                                )
+                                            "
+                                        />
+                                    </div>
+                                </template>
+                            </div>
                             <div class="flex h-full flex-col p-5">
                                 <h3
                                     class="text-sm font-semibold text-foreground"
@@ -1744,5 +1890,57 @@ onBeforeUnmount(() => {
         >
             <IconArrowUp class="h-4 w-4 text-foreground" :stroke-width="1.5" />
         </button>
+
+        <!-- Lightbox galeri sertifikasi -->
+        <Teleport to="body">
+            <div
+                v-if="lightbox"
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
+                @click="closeLightbox"
+            >
+                <img
+                    :src="`/storage/${lightbox.images[lightbox.index]}`"
+                    alt="Pratinjau sertifikat"
+                    class="max-h-[85vh] max-w-full rounded-lg object-contain shadow-2xl"
+                    @click.stop
+                />
+
+                <button
+                    type="button"
+                    class="absolute top-4 right-4 rounded-full bg-white/10 p-2 text-white transition-colors hover:bg-white/20"
+                    aria-label="Tutup"
+                    @click="closeLightbox"
+                >
+                    <IconX class="h-5 w-5" :stroke-width="1.5" />
+                </button>
+
+                <template v-if="lightbox.images.length > 1">
+                    <button
+                        type="button"
+                        class="absolute left-3 rounded-full bg-white/10 p-2.5 text-white transition-colors hover:bg-white/20"
+                        aria-label="Gambar sebelumnya"
+                        @click.stop="stepLightbox(-1)"
+                    >
+                        <IconChevronLeft class="h-5 w-5" :stroke-width="1.75" />
+                    </button>
+                    <button
+                        type="button"
+                        class="absolute right-3 rounded-full bg-white/10 p-2.5 text-white transition-colors hover:bg-white/20"
+                        aria-label="Gambar berikutnya"
+                        @click.stop="stepLightbox(1)"
+                    >
+                        <IconChevronRight
+                            class="h-5 w-5"
+                            :stroke-width="1.75"
+                        />
+                    </button>
+                    <span
+                        class="absolute bottom-5 rounded-full bg-white/10 px-3 py-1 text-xs text-white"
+                    >
+                        {{ lightbox.index + 1 }} / {{ lightbox.images.length }}
+                    </span>
+                </template>
+            </div>
+        </Teleport>
     </main>
 </template>
