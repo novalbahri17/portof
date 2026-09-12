@@ -52,7 +52,7 @@ class IndexController extends Controller
             'sideProjects' => Project::published()->sideProjects()->orderBy('sort_order')->paginate(3, ['*'], 'side_projects_page'),
             'portfolios' => Project::published()->portfolio()->orderBy('sort_order')->paginate(3, ['*'], 'portfolios_page'),
             'certifications' => $certifications,
-            'experiences' => Experience::published()->orderBy('start_date', 'desc')->get(['id', 'type', 'employment_type', 'work_mode', 'title', 'institution', 'location', 'start_date', 'end_date', 'is_current', 'description']),
+            'experiences' => Experience::published()->orderBy('start_date', 'desc')->get(['id', 'type', 'employment_type', 'title', 'institution', 'location', 'start_date', 'end_date', 'is_current', 'description']),
             'blogs' => Blog::published()->latest('published_at')->paginate(3, ['*'], 'blogs_page'),
             'sectionVisibility' => $sectionVisibility,
             'seo' => [

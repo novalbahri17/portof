@@ -14,7 +14,6 @@ class ExperienceController extends Controller
         return Inertia::render('admin/Experiences', [
             'experiences' => Experience::orderBy('type')->orderByDesc('start_date')->get(),
             'employmentTypes' => Experience::EMPLOYMENT_TYPES,
-            'workModes' => Experience::WORK_MODES,
         ]);
     }
 
@@ -23,7 +22,6 @@ class ExperienceController extends Controller
         $validated = $request->validate([
             'type' => 'required|string|in:work,education',
             'employment_type' => 'nullable|string|in:'.implode(',', array_keys(Experience::EMPLOYMENT_TYPES)),
-            'work_mode' => 'nullable|string|in:'.implode(',', array_keys(Experience::WORK_MODES)),
             'title' => 'required|string|max:255',
             'institution' => 'required|string|max:255',
             'location' => 'nullable|string|max:255',
@@ -39,10 +37,9 @@ class ExperienceController extends Controller
             $validated['end_date'] = null;
         }
 
-        // Tipe pekerjaan & sistem kerja hanya relevan untuk kategori kerja
+        // Tipe pekerjaan hanya relevan untuk kategori kerja
         if (($validated['type'] ?? 'work') === 'education') {
             $validated['employment_type'] = null;
-            $validated['work_mode'] = null;
         }
 
         Experience::create($validated);
@@ -55,7 +52,6 @@ class ExperienceController extends Controller
         $validated = $request->validate([
             'type' => 'required|string|in:work,education',
             'employment_type' => 'nullable|string|in:'.implode(',', array_keys(Experience::EMPLOYMENT_TYPES)),
-            'work_mode' => 'nullable|string|in:'.implode(',', array_keys(Experience::WORK_MODES)),
             'title' => 'required|string|max:255',
             'institution' => 'required|string|max:255',
             'location' => 'nullable|string|max:255',
@@ -73,7 +69,6 @@ class ExperienceController extends Controller
 
         if (($validated['type'] ?? 'work') === 'education') {
             $validated['employment_type'] = null;
-            $validated['work_mode'] = null;
         }
 
         $experience->update($validated);

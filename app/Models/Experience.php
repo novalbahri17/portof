@@ -14,19 +14,12 @@ class Experience extends Model
         'part_time' => 'Paruh Waktu / Part-time',
         'contract' => 'Kontrak / Contract',
         'freelance' => 'Pekerja Lepas / Freelance',
-    ];
-
-    /** Label sistem kerja. */
-    public const WORK_MODES = [
-        'on_site' => 'Di Kantor / On-site',
-        'remote' => 'Remote',
-        'hybrid' => 'Hybrid',
+        'remote' => 'Remote / Jarak Jauh',
     ];
 
     protected $fillable = [
         'type',
         'employment_type',
-        'work_mode',
         'title',
         'institution',
         'location',

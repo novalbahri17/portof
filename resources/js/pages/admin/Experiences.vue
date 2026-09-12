@@ -15,7 +15,6 @@ type Experience = {
     id: number;
     type: 'work' | 'education';
     employment_type: string | null;
-    work_mode: string | null;
     title: string;
     institution: string;
     location: string | null;
@@ -30,7 +29,6 @@ type Experience = {
 const props = defineProps<{
     experiences: Experience[];
     employmentTypes: Record<string, string>;
-    workModes: Record<string, string>;
 }>();
 const showForm = ref(false);
 const editing = ref<Experience | null>(null);
@@ -38,7 +36,6 @@ const editing = ref<Experience | null>(null);
 const form = useForm({
     type: 'work' as 'work' | 'education',
     employment_type: '',
-    work_mode: '',
     title: '',
     institution: '',
     location: '',
@@ -76,7 +73,6 @@ function openEdit(experience: Experience) {
     editing.value = experience;
     form.type = experience.type;
     form.employment_type = experience.employment_type ?? '';
-    form.work_mode = experience.work_mode ?? '';
     form.title = experience.title;
     form.institution = experience.institution;
     form.location = experience.location ?? '';
@@ -233,61 +229,30 @@ async function destroy(experience: Experience) {
                     </div>
                 </div>
 
-                <div
-                    v-if="form.type === 'work'"
-                    class="grid gap-4 sm:grid-cols-2"
-                >
-                    <div>
-                        <label
-                            class="mb-1 block text-sm font-medium text-foreground"
-                            >Tipe Pekerjaan</label
+                <div v-if="form.type === 'work'">
+                    <label
+                        class="mb-1 block text-sm font-medium text-foreground"
+                        >Tipe Pekerjaan</label
+                    >
+                    <select
+                        v-model="form.employment_type"
+                        class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
+                    >
+                        <option value="">— Tidak disebutkan —</option>
+                        <option
+                            v-for="(label, value) in employmentTypes"
+                            :key="value"
+                            :value="value"
                         >
-                        <select
-                            v-model="form.employment_type"
-                            class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
-                        >
-                            <option value="">— Tidak disebutkan —</option>
-                            <option
-                                v-for="(label, value) in employmentTypes"
-                                :key="value"
-                                :value="value"
-                            >
-                                {{ label }}
-                            </option>
-                        </select>
-                        <p
-                            v-if="form.errors.employment_type"
-                            class="mt-1 text-xs text-destructive"
-                        >
-                            {{ form.errors.employment_type }}
-                        </p>
-                    </div>
-
-                    <div>
-                        <label
-                            class="mb-1 block text-sm font-medium text-foreground"
-                            >Sistem Kerja</label
-                        >
-                        <select
-                            v-model="form.work_mode"
-                            class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
-                        >
-                            <option value="">— Tidak disebutkan —</option>
-                            <option
-                                v-for="(label, value) in workModes"
-                                :key="value"
-                                :value="value"
-                            >
-                                {{ label }}
-                            </option>
-                        </select>
-                        <p
-                            v-if="form.errors.work_mode"
-                            class="mt-1 text-xs text-destructive"
-                        >
-                            {{ form.errors.work_mode }}
-                        </p>
-                    </div>
+                            {{ label }}
+                        </option>
+                    </select>
+                    <p
+                        v-if="form.errors.employment_type"
+                        class="mt-1 text-xs text-destructive"
+                    >
+                        {{ form.errors.employment_type }}
+                    </p>
                 </div>
 
                 <div class="grid gap-4 sm:grid-cols-2">

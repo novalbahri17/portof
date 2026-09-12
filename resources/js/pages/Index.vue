@@ -83,7 +83,6 @@ type Experience = {
     id: number;
     type: 'work' | 'education';
     employment_type: string | null;
-    work_mode: string | null;
     title: string;
     institution: string;
     location: string | null;
@@ -147,7 +146,7 @@ const socialIcons: Record<string, Component> = {
     website: IconWorld,
 };
 
-/** Label jenis pekerjaan & sistem kerja (harus sama dengan Experience::EMPLOYMENT_TYPES / WORK_MODES). */
+/** Label jenis pekerjaan (harus sama dengan Experience::EMPLOYMENT_TYPES). */
 const employmentTypeLabels: Record<string, string> = {
     school_internship: 'Magang Sekolah / Internship',
     internship: 'Magang Kerja',
@@ -155,12 +154,7 @@ const employmentTypeLabels: Record<string, string> = {
     part_time: 'Paruh Waktu / Part-time',
     contract: 'Kontrak / Contract',
     freelance: 'Pekerja Lepas / Freelance',
-};
-
-const workModeLabels: Record<string, string> = {
-    on_site: 'Di Kantor / On-site',
-    remote: 'Remote',
-    hybrid: 'Hybrid',
+    remote: 'Remote / Jarak Jauh',
 };
 
 const { resolvedAppearance } = useAppearance();
@@ -1213,25 +1207,17 @@ onBeforeUnmount(() => {
                                 </span>
                                 <span
                                     v-if="e.employment_type"
-                                    class="rounded-full border border-border/60 bg-white/40 px-2 py-0.5 text-[11px] font-normal text-muted-foreground dark:bg-white/5"
-                                >
-                                    {{
-                                        employmentTypeLabels[
-                                            e.employment_type
-                                        ] ?? e.employment_type
-                                    }}
-                                </span>
-                                <span
-                                    v-if="e.work_mode"
                                     class="inline-flex items-center gap-1 rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-[11px] font-normal text-primary"
                                 >
                                     <IconWorld
+                                        v-if="e.employment_type === 'remote'"
                                         class="h-3 w-3"
                                         :stroke-width="1.5"
                                     />
                                     {{
-                                        workModeLabels[e.work_mode] ??
-                                        e.work_mode
+                                        employmentTypeLabels[
+                                            e.employment_type
+                                        ] ?? e.employment_type
                                     }}
                                 </span>
                             </div>
