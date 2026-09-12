@@ -232,7 +232,7 @@ async function destroy(experience: Experience) {
                 <div v-if="form.type === 'work'">
                     <label
                         class="mb-1 block text-sm font-medium text-foreground"
-                        >Tipe Pekerjaan</label
+                        >Tipe Pekerjaan (opsional)</label
                     >
                     <select
                         v-model="form.employment_type"
