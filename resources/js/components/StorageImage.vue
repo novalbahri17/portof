@@ -63,18 +63,30 @@ const isMissing = computed(() => Boolean(props.path) && failed.value);
         v-else
         :class="[
             imageClass,
-            'flex flex-col items-center justify-center gap-1 border border-dashed text-center',
+            'flex flex-col items-center justify-center gap-1.5 overflow-hidden border border-dashed p-2 text-center',
             isMissing
-                ? 'border-destructive/50 bg-destructive/5 text-destructive'
+                ? 'border-destructive/60 bg-destructive/10 text-destructive'
                 : 'border-border bg-muted/30 text-muted-foreground',
         ]"
         :title="
             isMissing ? `Berkas tidak ditemukan di server: ${path}` : undefined
         "
     >
-        <IconPhotoOff class="h-4 w-4 shrink-0" :stroke-width="1.5" />
-        <span v-if="showLabel" class="px-1 text-[10px] leading-tight">
-            {{ isMissing ? missingText : emptyText }}
+        <!-- Ukuran ikon ikut ukuran kotak, supaya tetap kelihatan
+             di thumbnail kecil maupun di foto hero yang besar. -->
+        <IconPhotoOff
+            class="h-[38%] max-h-20 min-h-5 w-[38%] max-w-20 min-w-5 shrink-0"
+            :stroke-width="1.5"
+        />
+        <span
+            v-if="showLabel"
+            class="inline-flex w-[calc(100%-0.5rem)] items-center gap-1 px-1 text-[10px] leading-tight"
+        >
+            <span class="h-px min-w-1 flex-1 bg-current opacity-60" />
+            <span class="shrink-0 whitespace-nowrap">
+                {{ isMissing ? missingText : emptyText }}
+            </span>
+            <span class="h-px min-w-1 flex-1 bg-current opacity-60" />
         </span>
     </div>
 </template>
