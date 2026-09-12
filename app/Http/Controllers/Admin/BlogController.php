@@ -120,4 +120,19 @@ class BlogController extends Controller
 
         return back()->with('success', 'Blog berhasil dihapus.');
     }
+
+    /**
+     * Buang gambar utama blog ini sekarang juga (dari disk dan database).
+     */
+    public function deleteImage(Blog $blog)
+    {
+        $image = $blog->image;
+
+        // Kosongkan dulu referensinya, baru buang berkasnya.
+        $blog->update(['image' => null]);
+
+        StorageFiles::delete($image);
+
+        return back()->with('success', 'Gambar utama blog dihapus.');
+    }
 }

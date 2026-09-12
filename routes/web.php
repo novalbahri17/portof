@@ -26,16 +26,21 @@ Route::middleware(['auth', 'verified', EnsureIsAdmin::class])
         Route::post('/projects', [Admin\ProjectController::class, 'store'])->name('projects.store');
         Route::put('/projects/{project}', [Admin\ProjectController::class, 'update'])->name('projects.update');
         Route::delete('/projects/{project}', [Admin\ProjectController::class, 'destroy'])->name('projects.destroy');
+        Route::delete('/projects/{project}/image', [Admin\ProjectController::class, 'deleteImage'])->name('projects.image.destroy');
+        Route::post('/projects/{project}/gallery/delete', [Admin\ProjectController::class, 'deleteGalleryImage'])->name('projects.gallery.destroy');
 
         Route::get('/blogs', [Admin\BlogController::class, 'index'])->name('blogs.index');
         Route::post('/blogs', [Admin\BlogController::class, 'store'])->name('blogs.store');
         Route::put('/blogs/{blog}', [Admin\BlogController::class, 'update'])->name('blogs.update');
         Route::delete('/blogs/{blog}', [Admin\BlogController::class, 'destroy'])->name('blogs.destroy');
+        Route::delete('/blogs/{blog}/image', [Admin\BlogController::class, 'deleteImage'])->name('blogs.image.destroy');
 
         Route::get('/certifications', [Admin\CertificationController::class, 'index'])->name('certifications.index');
         Route::post('/certifications', [Admin\CertificationController::class, 'store'])->name('certifications.store');
         Route::put('/certifications/{certification}', [Admin\CertificationController::class, 'update'])->name('certifications.update');
         Route::delete('/certifications/{certification}', [Admin\CertificationController::class, 'destroy'])->name('certifications.destroy');
+        Route::post('/certifications/{certification}/images/delete', [Admin\CertificationController::class, 'deleteImage'])->name('certifications.image.destroy');
+        Route::delete('/certifications/{certification}/pdf', [Admin\CertificationController::class, 'deletePdf'])->name('certifications.pdf.destroy');
 
         Route::get('/experiences', [Admin\ExperienceController::class, 'index'])->name('experiences.index');
         Route::post('/experiences', [Admin\ExperienceController::class, 'store'])->name('experiences.store');

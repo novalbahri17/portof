@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { Head, useForm, router } from '@inertiajs/vue3';
-import { Plus, Pencil, Trash2, FileText, X, ImagePlus } from 'lucide-vue-next';
+import { Plus, Pencil, Trash2, FileText, ImagePlus } from 'lucide-vue-next';
 import Swal from 'sweetalert2';
 import { computed, ref } from 'vue';
 import FileInput from '@/components/FileInput.vue';
+import SavedImages from '@/components/SavedImages.vue';
 import StorageImage from '@/components/StorageImage.vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 
@@ -32,13 +33,13 @@ const form = useForm({
     sort_order: 0,
 });
 
-/** Object URL untuk pratinjau gambar yang baru dipilih. */
-const previews = computed(() =>
-    form.images.map((file) => ({
-        name: file.name,
-        url: URL.createObjectURL(file),
-    })),
-);
+/** Pesan galat untuk gambar, mis. `images.0` dari validasi Laravel. */
+const imageError = computed(() => {
+    const errors = form.errors as Record<string, string | undefined>;
+    const key = Object.keys(errors).find((k) => k.startsWith('images.'));
+
+    return key ? (errors[key] ?? '') : '';
+});
 
 function resetFileInput() {
     picker.value?.reset();
@@ -68,17 +69,64 @@ function openEdit(certification: Certification) {
 }
 
 function onPickImages(event: Event) {
-    const files = Array.from((event.target as HTMLInputElement).files ?? []);
-    form.images = [...form.images, ...files];
+    const input = event.target as HTMLInputElement;
+
+    // Salin apa adanya: FileInput sudah membangun ulang daftar berkasnya
+    // saat salah satu dibatalkan, jadi jangan ditambahkan lagi.
+    form.images = Array.from(input.files ?? []);
 }
 
-function removeNewImage(index: number) {
-    form.images = form.images.filter((_, i) => i !== index);
-    resetFileInput();
-}
-
+/** Buang satu gambar sertifikasi yang sudah tersimpan di server. */
 function removeExistingImage(path: string) {
-    form.keep_images = form.keep_images.filter((p) => p !== path);
+    if (!editing.value) return;
+
+    router.post(
+        `/admin/certifications/${editing.value.id}/images/delete`,
+        { path },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                form.keep_images = form.keep_images.filter((p) => p !== path);
+
+                if (editing.value) {
+                    editing.value.images = editing.value.images.filter(
+                        (p) => p !== path,
+                    );
+                }
+            },
+        },
+    );
+}
+
+/** Buang PDF diploma yang sudah tersimpan di server. */
+async function removePdf() {
+    if (!editing.value) return;
+
+    const isDarkMode =
+        typeof document !== 'undefined' &&
+        document.documentElement.classList.contains('dark');
+
+    const result = await Swal.fire({
+        icon: 'warning',
+        title: 'Hapus PDF diploma?',
+        text: 'Berkas PDF akan dihapus dari server.',
+        showCancelButton: true,
+        confirmButtonText: 'Ya, hapus',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#dc2626',
+        background: isDarkMode ? '#0a0a0a' : '#ffffff',
+        color: isDarkMode ? '#fafafa' : '#0a0a0a',
+        customClass: { popup: 'rounded-xl border border-white/10' },
+    });
+
+    if (!result.isConfirmed) return;
+
+    router.delete(`/admin/certifications/${editing.value.id}/pdf`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            if (editing.value) editing.value.certificate_file = null;
+        },
+    });
 }
 
 function submit() {
@@ -235,97 +283,31 @@ async function destroy(certification: Certification) {
                             label="Pilih gambar"
                             accept="image/*"
                             multiple
-                            :show-preview="false"
                             hint="Bisa pilih beberapa gambar sekaligus. Maks 2 MB per gambar."
-                            :error="form.errors.images"
+                            preview-class="h-16 w-24"
+                            :error="imageError || form.errors.images"
                             @change="onPickImages"
+                            @clear="form.images = []"
                         />
-                        <p
-                            v-for="(err, i) in Object.entries(form.errors).find(
-                                ([k]) => k.startsWith('images.'),
-                            )?.[1]
-                                ? [
-                                      Object.entries(form.errors).find(([k]) =>
-                                          k.startsWith('images.'),
-                                      )![1],
-                                  ]
-                                : []"
-                            :key="i"
-                            class="mt-1 text-xs text-destructive"
-                        >
-                            {{ err }}
-                        </p>
 
                         <!-- Gambar tersimpan -->
-                        <div
-                            v-if="editing && form.keep_images.length"
-                            class="mt-3"
-                        >
-                            <p
-                                class="mb-1.5 text-xs font-medium text-muted-foreground"
-                            >
-                                Gambar tersimpan ({{ form.keep_images.length }})
-                            </p>
-                            <div class="flex flex-wrap gap-2">
-                                <div
-                                    v-for="path in form.keep_images"
-                                    :key="path"
-                                    class="group relative"
-                                >
-                                    <StorageImage
-                                        :path="path"
-                                        :show-label="false"
-                                        image-class="h-16 w-24 rounded-lg border border-border object-cover"
-                                    />
-                                    <button
-                                        type="button"
-                                        title="Hapus gambar ini"
-                                        class="absolute -top-1.5 -right-1.5 rounded-full bg-destructive p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
-                                        @click="removeExistingImage(path)"
-                                    >
-                                        <X class="h-3 w-3" />
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Pratinjau gambar baru -->
-                        <div v-if="previews.length" class="mt-3">
-                            <p
-                                class="mb-1.5 text-xs font-medium text-muted-foreground"
-                            >
-                                Akan diunggah ({{ previews.length }})
-                            </p>
-                            <div class="flex flex-wrap gap-2">
-                                <div
-                                    v-for="(preview, index) in previews"
-                                    :key="preview.url"
-                                    class="group relative"
-                                >
-                                    <img
-                                        :src="preview.url"
-                                        :alt="preview.name"
-                                        class="h-16 w-24 rounded-lg border border-primary/40 object-cover"
-                                    />
-                                    <button
-                                        type="button"
-                                        title="Batalkan gambar ini"
-                                        class="absolute -top-1.5 -right-1.5 rounded-full bg-destructive p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
-                                        @click="removeNewImage(index)"
-                                    >
-                                        <X class="h-3 w-3" />
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                        <SavedImages
+                            v-if="editing"
+                            :paths="form.keep_images"
+                            label="Tersimpan di server"
+                            alt="Gambar sertifikasi"
+                            image-class="h-16 w-24"
+                            confirm-text="Hapus gambar ini dari server?"
+                            @remove="removeExistingImage"
+                        />
 
                         <p
-                            v-else-if="editing && !form.keep_images.length"
+                            v-if="editing && !form.keep_images.length"
                             class="mt-2 inline-flex items-center gap-1.5 text-xs text-amber-500"
                         >
                             <ImagePlus class="h-3.5 w-3.5" />
-                            Belum ada gambar — pilih minimal satu sebelum
-                            menyimpan.
+                            Belum ada gambar tersimpan — pilih minimal satu
+                            sebelum menyimpan.
                         </p>
                     </div>
 
@@ -338,26 +320,60 @@ async function destroy(certification: Certification) {
                         <FileInput
                             label="Pilih PDF"
                             accept="application/pdf"
-                            :show-preview="false"
                             :error="form.errors.certificate_file"
                             empty-text="Belum ada berkas dipilih"
+                            preview-class="h-16 w-28"
                             @change="
                                 (e: Event) =>
                                     (form.certificate_file =
                                         ((e.target as HTMLInputElement).files ??
                                             [])[0] || null)
                             "
+                            @clear="form.certificate_file = null"
                         />
 
-                        <a
+                        <div
                             v-if="editing?.certificate_file"
-                            :href="`/storage/${editing.certificate_file}`"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                            class="mt-3 flex items-center gap-3 rounded-lg border border-border bg-muted/20 p-3"
                         >
-                            <FileText class="h-3.5 w-3.5" /> Lihat PDF saat ini
-                        </a>
+                            <FileText class="h-5 w-5 shrink-0 text-primary" />
+                            <div class="min-w-0 flex-1">
+                                <p
+                                    class="truncate text-xs font-medium text-foreground"
+                                    :title="editing.certificate_file"
+                                >
+                                    {{
+                                        editing.certificate_file
+                                            .split('/')
+                                            .pop()
+                                    }}
+                                </p>
+                                <a
+                                    :href="`/storage/${editing.certificate_file}`"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="text-xs text-primary hover:underline"
+                                >
+                                    Lihat PDF
+                                </a>
+                            </div>
+                            <button
+                                type="button"
+                                title="Hapus PDF ini dari server"
+                                aria-label="Hapus PDF"
+                                class="cursor-pointer rounded-lg p-2 text-destructive transition-colors hover:bg-destructive/10"
+                                @click="removePdf"
+                            >
+                                <Trash2 class="h-4 w-4" />
+                            </button>
+                        </div>
+
+                        <p
+                            v-else-if="editing"
+                            class="mt-2 text-xs text-muted-foreground"
+                        >
+                            Belum ada PDF diploma.
+                        </p>
                     </div>
                 </div>
 

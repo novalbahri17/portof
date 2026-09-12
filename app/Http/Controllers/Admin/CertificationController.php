@@ -181,4 +181,55 @@ class CertificationController extends Controller
 
         return back()->with('success', 'Sertifikasi berhasil dihapus.');
     }
+
+    /**
+     * Buang satu gambar sertifikasi. Sertifikasi wajib punya minimal satu
+     * gambar, jadi gambar terakhir tidak boleh dihapus dari sini.
+     */
+    public function deleteImage(Request $request, Certification $certification)
+    {
+        $validated = $request->validate([
+            'path' => 'required|string',
+        ]);
+
+        $images = $certification->imageList();
+        $path = $validated['path'];
+
+        if (! in_array($path, $images, true)) {
+            return back()->withErrors([
+                'images' => 'Gambar itu tidak ada di sertifikasi ini.',
+            ]);
+        }
+
+        if (count($images) <= 1) {
+            return back()->withErrors([
+                'images' => 'Sertifikasi harus punya minimal satu gambar. Unggah gambar pengganti dulu.',
+            ]);
+        }
+
+        $remaining = array_values(array_diff($images, [$path]));
+
+        $certification->images = $remaining;
+        $certification->image = $remaining[0];
+        $certification->save();
+
+        StorageFiles::delete($path);
+
+        return back()->with('success', 'Gambar sertifikasi dihapus.');
+    }
+
+    /**
+     * Buang PDF diploma sertifikasi ini sekarang juga.
+     */
+    public function deletePdf(Certification $certification)
+    {
+        $pdf = $certification->certificate_file;
+
+        $certification->certificate_file = null;
+        $certification->save();
+
+        StorageFiles::delete($pdf);
+
+        return back()->with('success', 'PDF diploma dihapus.');
+    }
 }

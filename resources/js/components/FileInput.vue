@@ -21,6 +21,8 @@ type Props = {
     previewClass?: string;
     /** Kelas gambar pratinjau (kalau berbeda dari kotak). */
     previewImageClass?: string;
+    /** Judul kecil di atas pratinjau berkas baru. */
+    previewLabel?: string;
 };
 
 const props = withDefaults(defineProps<Props>(), {
@@ -34,15 +36,29 @@ const props = withDefaults(defineProps<Props>(), {
     showPreview: true,
     previewClass: 'h-16 w-24',
     previewImageClass: undefined,
+    previewLabel: undefined,
 });
 
 const emit = defineEmits<{
     change: [event: Event];
     remove: [index: number];
+    clear: [];
 }>();
 
 const input = ref<HTMLInputElement | null>(null);
 const names = ref<string[]>([]);
+
+/**
+ * Judul kecil di atas pratinjau berkas baru, supaya jelas ini berkas yang
+ * belum disimpan -- beda dari gambar yang sudah tersimpan di server.
+ */
+const previewTitle = computed(() => {
+    if (props.previewLabel) return props.previewLabel;
+
+    return props.multiple
+        ? `${names.value.length} berkas baru siap diunggah`
+        : 'Berkas baru siap diunggah';
+});
 
 type Item = {
     name: string;
@@ -54,6 +70,7 @@ type Item = {
 
 const items = ref<Item[]>([]);
 
+/** Teks di samping tombol: nama berkas, atau jumlah bila banyak. */
 const selectionText = computed(() => {
     if (names.value.length === 0) return props.emptyText;
     if (names.value.length === 1) return names.value[0];
@@ -141,6 +158,12 @@ function removeAt(index: number) {
     } as unknown as Event);
 }
 
+/** Buang semua berkas yang baru dipilih. */
+function clearSelection() {
+    reset();
+    emit('clear');
+}
+
 /** Kosongkan pilihan berkas (dipakai induk saat form dibuka atau setelah disimpan). */
 function reset() {
     releaseItems();
@@ -168,67 +191,81 @@ defineExpose({ reset });
                 {{ label }}
             </button>
             <span
-                v-if="showSelection"
-                class="max-w-full min-w-0 truncate text-sm"
-                :class="
-                    names.length
-                        ? 'font-medium text-foreground'
-                        : 'text-muted-foreground'
-                "
-                :title="names.join(', ')"
+                v-if="showSelection && !items.length"
+                class="max-w-full min-w-0 truncate text-sm text-muted-foreground"
+                :title="emptyText"
             >
-                {{ selectionText }}
+                {{ emptyText }}
             </span>
+            <template v-else-if="showSelection">
+                <span
+                    class="max-w-full min-w-0 truncate text-sm font-medium text-foreground"
+                    :title="names.join(', ')"
+                >
+                    {{ selectionText }}
+                </span>
+                <button
+                    type="button"
+                    title="Batalkan semua berkas yang baru dipilih"
+                    class="cursor-pointer text-xs text-primary hover:underline"
+                    @click="clearSelection"
+                >
+                    Batalkan pilihan
+                </button>
+            </template>
         </div>
 
         <!-- Pratinjau berkas yang baru dipilih, supaya jelas berkas mana
              yang akan diunggah -- bukan cuma nama filenya. -->
-        <div v-if="showPreview && items.length" class="flex flex-wrap gap-2">
-            <div
-                v-for="(item, index) in items"
-                :key="`${item.name}-${index}`"
-                class="group relative"
-            >
-                <img
-                    v-if="item.isImage && item.url"
-                    :src="item.url"
-                    :alt="item.name"
-                    :class="[
-                        previewImageClass ?? previewClass,
-                        'rounded-lg border border-primary/40 object-cover',
-                    ]"
-                />
+        <div v-if="showPreview && items.length" class="space-y-2">
+            <p class="text-xs font-medium text-primary">{{ previewTitle }}</p>
+            <div class="flex flex-wrap gap-3">
                 <div
-                    v-else
-                    :class="[
-                        previewClass,
-                        'flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-primary/40 bg-muted/30 px-1 text-center',
-                    ]"
+                    v-for="(item, index) in items"
+                    :key="`${item.name}-${index}`"
+                    class="group relative"
                 >
-                    <span class="text-[11px] font-medium text-foreground">
-                        PDF
-                    </span>
-                    <span class="text-[10px] text-muted-foreground">
-                        {{ item.size }}
-                    </span>
+                    <img
+                        v-if="item.isImage && item.url"
+                        :src="item.url"
+                        :alt="item.name"
+                        :class="[
+                            previewImageClass ?? previewClass,
+                            'rounded-lg border border-primary/40 object-cover',
+                        ]"
+                    />
+                    <div
+                        v-else
+                        :class="[
+                            previewClass,
+                            'flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-primary/40 bg-muted/30 px-1 text-center',
+                        ]"
+                    >
+                        <span class="text-[11px] font-medium text-foreground">
+                            PDF
+                        </span>
+                        <span class="text-[10px] text-muted-foreground">
+                            {{ item.size }}
+                        </span>
+                    </div>
+
+                    <button
+                        type="button"
+                        title="Batalkan berkas ini"
+                        aria-label="Batalkan berkas ini"
+                        class="absolute -top-1.5 -right-1.5 rounded-full bg-destructive p-0.5 text-white shadow-sm transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
+                        @click="removeAt(index)"
+                    >
+                        <X class="h-3 w-3" />
+                    </button>
+
+                    <p
+                        class="mt-1 max-w-24 truncate text-[10px] text-muted-foreground"
+                        :title="item.name"
+                    >
+                        {{ item.name }}
+                    </p>
                 </div>
-
-                <button
-                    v-if="multiple"
-                    type="button"
-                    title="Batalkan berkas ini"
-                    class="absolute -top-1.5 -right-1.5 rounded-full bg-destructive p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
-                    @click="removeAt(index)"
-                >
-                    <X class="h-3 w-3" />
-                </button>
-
-                <p
-                    class="mt-1 max-w-24 truncate text-[10px] text-muted-foreground"
-                    :title="item.name"
-                >
-                    {{ item.name }}
-                </p>
             </div>
         </div>
 

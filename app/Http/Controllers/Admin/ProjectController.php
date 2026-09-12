@@ -180,6 +180,49 @@ class ProjectController extends Controller
     }
 
     /**
+     * Buang gambar utama proyek ini sekarang juga (dari disk dan database).
+     */
+    public function deleteImage(Project $project)
+    {
+        $image = $project->image;
+
+        $project->update(['image' => null]);
+
+        StorageFiles::delete($image);
+
+        return back()->with('success', 'Gambar utama proyek dihapus.');
+    }
+
+    /**
+     * Buang satu gambar dari galeri proyek. Hanya berkas yang benar-benar
+     * terdaftar di galeri proyek ini yang boleh dihapus.
+     */
+    public function deleteGalleryImage(Request $request, Project $project)
+    {
+        $validated = $request->validate([
+            'path' => 'required|string',
+        ]);
+
+        $gallery = is_array($project->gallery) ? $project->gallery : [];
+        $path = $validated['path'];
+
+        if (! in_array($path, $gallery, true)) {
+            return back()->withErrors([
+                'gallery' => 'Gambar itu tidak ada di galeri proyek ini.',
+            ]);
+        }
+
+        $remaining = array_values(array_diff($gallery, [$path]));
+
+        $project->update([
+            'gallery' => $remaining !== [] ? $remaining : null,
+        ]);
+
+        StorageFiles::delete($path);
+
+        return back()->with('success', 'Gambar galeri dihapus.');
+    }
+    /**
      * Simpan gambar galeri. Mengembalikan null kalau ada yang gagal, supaya
      * pemanggil bisa membatalkan tanpa kehilangan data lama. Array kosong
      * berarti memang tidak ada berkas galeri yang dikirim.

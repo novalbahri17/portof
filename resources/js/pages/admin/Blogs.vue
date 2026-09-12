@@ -4,7 +4,7 @@ import { Plus, Pencil, Trash2 } from 'lucide-vue-next';
 import { ref } from 'vue';
 import FileInput from '@/components/FileInput.vue';
 import RichEditor from '@/components/RichEditor.vue';
-import StorageImage from '@/components/StorageImage.vue';
+import SavedImages from '@/components/SavedImages.vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 
 type Blog = {
@@ -85,6 +85,18 @@ function submit() {
 function destroy(id: number) {
     if (confirm('Hapus blog ini?')) router.delete(`/admin/blogs/${id}`);
 }
+
+/** Buang gambar blog yang sedang diedit. */
+function removeImage() {
+    if (!editing.value) return;
+
+    router.delete(`/admin/blogs/${editing.value.id}/image`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            if (editing.value) editing.value.image = null;
+        },
+    });
+}
 </script>
 
 <template>
@@ -144,16 +156,24 @@ function destroy(id: number) {
                         hint="Pisahkan antar paragraf dengan satu baris kosong."
                     />
                 </div>
-                <div>
-                    <label
-                        class="mb-1 block text-sm font-medium text-foreground"
-                        >Gambar</label
-                    >
+                <div
+                    class="space-y-3 rounded-lg border border-border bg-muted/20 p-4"
+                >
+                    <div>
+                        <p class="text-sm font-medium text-foreground">
+                            Gambar
+                        </p>
+                        <p class="mt-0.5 text-xs text-muted-foreground">
+                            Dipakai sebagai gambar utama artikel.
+                        </p>
+                    </div>
+
                     <FileInput
                         ref="imagePicker"
-                        label="Pilih gambar"
+                        label="Pilih gambar baru"
                         accept="image/*"
                         :error="form.errors.image"
+                        preview-label="Gambar baru siap diunggah"
                         hint="Format JPG, PNG, atau WEBP. Maks 2 MB."
                         @change="
                             (e: Event) =>
@@ -161,13 +181,24 @@ function destroy(id: number) {
                                     ((e.target as HTMLInputElement).files ??
                                         [])[0] || null)
                         "
+                        @clear="form.image = null"
                     />
-                    <StorageImage
-                        v-if="editing?.image"
-                        :path="editing.image"
+
+                    <SavedImages
+                        :paths="editing?.image ? [editing.image] : []"
+                        label="Tersimpan di server"
                         alt="Gambar saat ini"
-                        image-class="mt-2 h-20 w-32 rounded-lg border border-border object-cover"
+                        image-class="h-20 w-28"
+                        confirm-text="Hapus gambar blog ini?"
+                        @remove="removeImage"
                     />
+
+                    <p
+                        v-if="editing && !editing.image"
+                        class="text-xs text-muted-foreground"
+                    >
+                        Belum ada gambar.
+                    </p>
                 </div>
                 <div>
                     <label

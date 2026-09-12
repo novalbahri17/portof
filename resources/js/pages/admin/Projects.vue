@@ -4,7 +4,7 @@ import { Plus, Pencil, Trash2, Search } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import FileInput from '@/components/FileInput.vue';
 import RichEditor from '@/components/RichEditor.vue';
-import StorageImage from '@/components/StorageImage.vue';
+import SavedImages from '@/components/SavedImages.vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { resolveTablerIcon } from '@/lib/tabler-icons';
 import { technologyCatalog } from '@/lib/technology-catalog';
@@ -196,6 +196,42 @@ function submit() {
 function destroy(id: number) {
     if (confirm('Hapus proyek ini?')) router.delete(`/admin/projects/${id}`);
 }
+
+/** Buang gambar utama proyek yang sedang diedit. */
+function removeCover() {
+    if (!editing.value) return;
+
+    router.delete(`/admin/projects/${editing.value.id}/image`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            if (editing.value) editing.value.image = null;
+        },
+    });
+}
+
+/** Buang satu gambar dari galeri proyek yang sedang diedit. */
+function removeGalleryImage(path: string) {
+    if (!editing.value) return;
+
+    router.post(
+        `/admin/projects/${editing.value.id}/gallery/delete`,
+        { path },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                existingGallery.value = existingGallery.value.filter(
+                    (img) => img !== path,
+                );
+
+                if (editing.value?.gallery) {
+                    editing.value.gallery = editing.value.gallery.filter(
+                        (img) => img !== path,
+                    );
+                }
+            },
+        },
+    );
+}
 </script>
 
 <template>
@@ -323,65 +359,94 @@ function destroy(id: number) {
                     </div>
                 </div>
 
-                <div class="grid gap-4 sm:grid-cols-2">
-                    <div>
-                        <label
-                            class="mb-1 block text-sm font-medium text-foreground"
-                            >Gambar utama</label
-                        >
+                <div class="grid gap-4 lg:grid-cols-2">
+                    <!-- Gambar utama: pratinjau sendiri di bagiannya sendiri -->
+                    <div
+                        class="space-y-3 rounded-lg border border-border bg-muted/20 p-4"
+                    >
+                        <div>
+                            <p class="text-sm font-medium text-foreground">
+                                Gambar utama
+                            </p>
+                            <p class="mt-0.5 text-xs text-muted-foreground">
+                                Dipakai sebagai foto sampul proyek.
+                            </p>
+                        </div>
+
                         <FileInput
                             ref="imagePicker"
-                            label="Pilih gambar"
+                            label="Pilih gambar baru"
                             accept="image/*"
                             :error="form.errors.image"
+                            preview-label="Gambar baru siap diunggah"
+                            hint="Mengunggah gambar baru akan menggantikan gambar utama yang lama."
                             @change="
                                 (e: Event) =>
                                     (form.image =
                                         ((e.target as HTMLInputElement).files ??
                                             [])[0] || null)
                             "
+                            @clear="form.image = null"
                         />
-                        <StorageImage
-                            v-if="editing?.image"
-                            :path="editing.image"
+
+                        <SavedImages
+                            :paths="editing?.image ? [editing.image] : []"
+                            label="Tersimpan di server"
                             alt="Gambar utama saat ini"
-                            image-class="mt-2 h-20 w-32 rounded-lg border border-border object-cover"
+                            image-class="h-20 w-28"
+                            confirm-text="Hapus gambar utama proyek ini?"
+                            @remove="removeCover"
                         />
-                    </div>
-                    <div>
-                        <label
-                            class="mb-1 block text-sm font-medium text-foreground"
-                            >Galeri (multi-upload)</label
+
+                        <p
+                            v-if="editing && !editing.image"
+                            class="text-xs text-muted-foreground"
                         >
+                            Belum ada gambar utama.
+                        </p>
+                    </div>
+
+                    <!-- Galeri: pratinjau sendiri di bagiannya sendiri -->
+                    <div
+                        class="space-y-3 rounded-lg border border-border bg-muted/20 p-4"
+                    >
+                        <div>
+                            <p class="text-sm font-medium text-foreground">
+                                Galeri
+                            </p>
+                            <p class="mt-0.5 text-xs text-muted-foreground">
+                                Bisa pilih beberapa gambar sekaligus. Gambar
+                                baru ditambahkan, tidak menggantikan yang lama.
+                            </p>
+                        </div>
+
                         <FileInput
                             ref="galleryPicker"
-                            label="Pilih gambar"
+                            label="Tambah gambar galeri"
                             accept="image/*"
                             multiple
-                            hint="Bisa pilih beberapa gambar sekaligus."
+                            :error="form.errors.gallery_images"
+                            preview-class="h-20 w-28"
                             @change="handleGalleryChange"
+                            @clear="form.gallery_images = []"
                         />
-                    </div>
-                </div>
 
-                <div v-if="existingGallery.length" class="space-y-2">
-                    <label class="block text-sm font-medium text-foreground"
-                        >Galeri saat ini</label
-                    >
-                    <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                        <StorageImage
-                            v-for="img in existingGallery"
-                            :key="img"
-                            :path="img"
+                        <SavedImages
+                            :paths="existingGallery"
+                            label="Tersimpan di server"
                             alt="Gambar galeri"
-                            :show-label="false"
-                            image-class="h-20 w-full rounded-md border border-border object-cover"
+                            image-class="h-20 w-28"
+                            confirm-text="Hapus gambar ini dari galeri proyek?"
+                            @remove="removeGalleryImage"
                         />
+
+                        <p
+                            v-if="editing && !existingGallery.length"
+                            class="text-xs text-muted-foreground"
+                        >
+                            Galeri masih kosong.
+                        </p>
                     </div>
-                    <p class="text-xs text-muted-foreground">
-                        Gambar baru akan ditambahkan tanpa menghapus yang sudah
-                        ada.
-                    </p>
                 </div>
 
                 <div>
