@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Link, usePage } from '@inertiajs/vue3';
+import { Link, router, usePage } from '@inertiajs/vue3';
 import {
     LayoutDashboard,
     FolderKanban,
@@ -13,10 +13,12 @@ import {
     X,
     BarChart3,
     UserCog,
+    House,
 } from 'lucide-vue-next';
 import Swal from 'sweetalert2';
 import { ref, computed, watch } from 'vue';
 import SiteLogo from '@/components/SiteLogo.vue';
+import { logout } from '@/routes';
 
 const page = usePage();
 const sidebarOpen = ref(false);
@@ -68,6 +70,36 @@ watch(
     },
     { immediate: true },
 );
+
+const loggingOut = ref(false);
+
+async function handleLogout() {
+    if (typeof window === 'undefined' || loggingOut.value) return;
+
+    const isDarkMode = document.documentElement.classList.contains('dark');
+
+    const result = await Swal.fire({
+        icon: 'question',
+        title: 'Keluar dari akun?',
+        text: 'Kamu harus masuk lagi untuk mengakses halaman admin.',
+        showCancelButton: true,
+        confirmButtonText: 'Ya, keluar',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: isDarkMode ? '#fafafa' : '#171717',
+        cancelButtonColor: isDarkMode ? '#52525b' : '#a1a1aa',
+        background: isDarkMode ? '#0a0a0a' : '#ffffff',
+        color: isDarkMode ? '#fafafa' : '#0a0a0a',
+        customClass: {
+            popup: 'rounded-xl border border-white/10',
+        },
+    });
+
+    if (!result.isConfirmed) return;
+
+    loggingOut.value = true;
+    router.flushAll();
+    router.post(logout());
+}
 </script>
 
 <template>
@@ -86,7 +118,9 @@ watch(
                 sidebarOpen ? 'translate-x-0' : '-translate-x-full',
             ]"
         >
-            <div class="flex h-16 items-center gap-3 border-b border-border px-6">
+            <div
+                class="flex h-16 items-center gap-3 border-b border-border px-6"
+            >
                 <SiteLogo img-class="h-8" />
                 <span class="text-lg font-semibold text-foreground">Admin</span>
             </div>
@@ -113,19 +147,28 @@ watch(
                     href="/"
                     class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 >
-                    <LogOut class="h-4 w-4" />
+                    <House class="h-4 w-4" />
                     Kembali ke situs
                 </Link>
+
+                <button
+                    type="button"
+                    class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                    data-test="admin-logout-button"
+                    @click="handleLogout"
+                >
+                    <LogOut class="h-4 w-4" />
+                    Keluar
+                </button>
             </div>
         </aside>
 
         <!-- Main content -->
         <div class="flex flex-1 flex-col">
-            <header class="flex h-16 items-center gap-4 border-b border-border px-6">
-                <button
-                    class="lg:hidden"
-                    @click="sidebarOpen = !sidebarOpen"
-                >
+            <header
+                class="flex h-16 items-center gap-4 border-b border-border px-6"
+            >
+                <button class="lg:hidden" @click="sidebarOpen = !sidebarOpen">
                     <Menu v-if="!sidebarOpen" class="h-5 w-5" />
                     <X v-else class="h-5 w-5" />
                 </button>
