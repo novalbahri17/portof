@@ -4,11 +4,37 @@ set -e
 echo "🚀 Starting Laravel application..."
 
 # ---- Wait for database ----
-echo "⏳ Waiting for PostgreSQL..."
-until pg_isready -h "${DB_HOST:-db}" -p "${DB_PORT:-5432}" -U "${DB_USERNAME:-laravel}" -q; do
-    sleep 2
-done
-echo "✅ PostgreSQL is ready"
+# Mendukung MySQL/MariaDB. Untuk driver lain, tunggu via TCP sederhana.
+DB_WAIT_TIMEOUT="${DB_WAIT_TIMEOUT:-60}"
+waited=0
+
+if [ "${DB_CONNECTION:-mysql}" = "mysql" ] || [ "${DB_CONNECTION:-mysql}" = "mariadb" ]; then
+    echo "⏳ Waiting for MySQL at ${DB_HOST:-127.0.0.1}:${DB_PORT:-3306}..."
+    until mysqladmin ping \
+            -h "${DB_HOST:-127.0.0.1}" \
+            -P "${DB_PORT:-3306}" \
+            -u "${DB_USERNAME:-root}" \
+            ${DB_PASSWORD:+-p"${DB_PASSWORD}"} \
+            --silent --connect-timeout=3 >/dev/null 2>&1; do
+        waited=$((waited + 2))
+        if [ "$waited" -ge "$DB_WAIT_TIMEOUT" ]; then
+            echo "⚠️  MySQL tidak merespons setelah ${DB_WAIT_TIMEOUT}s — lanjut saja (migrasi akan mencoba lagi)"
+            break
+        fi
+        sleep 2
+    done
+else
+    echo "⏳ Waiting for database at ${DB_HOST:-127.0.0.1}:${DB_PORT:-5432}..."
+    until php -r "exit(@fsockopen(getenv('DB_HOST') ?: '127.0.0.1', (int)(getenv('DB_PORT') ?: 5432)) ? 0 : 1);" 2>/dev/null; do
+        waited=$((waited + 2))
+        if [ "$waited" -ge "$DB_WAIT_TIMEOUT" ]; then
+            echo "⚠️  Database tidak merespons setelah ${DB_WAIT_TIMEOUT}s — lanjut saja"
+            break
+        fi
+        sleep 2
+    done
+fi
+echo "✅ Database siap"
 
 # ---- Ensure storage structure ----
 mkdir -p \
