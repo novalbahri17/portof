@@ -77,10 +77,24 @@ COPY --from=frontend /app/public/build public/build
 # Copy PHP vendor from stage 2
 COPY --from=vendor /app/vendor vendor
 
-# Remove dev / build files not needed in production
+# Bersihkan berkas dev/build yang tidak dibutuhkan di produksi.
+# Dijalankan SEBELUM stempel build ditulis, supaya stempel tidak ikut terhapus.
 RUN rm -rf node_modules tests .git .github docker.txt project.txt \
     resources/js/.eslintrc* eslint.config.js .prettierrc .prettierignore \
     phpunit.xml pint.json .editorconfig
+
+# Stempel versi build.
+# Ditulis SETELAH `COPY . .` dan setelah pembersihan, supaya layer-nya ikut
+# di-refresh setiap kali kode berubah dan isinya benar-benar mencerminkan
+# image yang sedang live. Bisa dibaca lewat GET /_version untuk memastikan
+# deploy sudah masuk.
+# BUILD_COMMIT opsional: Dokploy bisa mengisinya dengan commit hash.
+ARG BUILD_COMMIT=unknown
+RUN BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    && printf '{\n  "commit": "%s",\n  "built_at": "%s",\n  "php": "%s"\n}\n' \
+        "$BUILD_COMMIT" "$BUILD_TIME" "$(php -r 'echo PHP_VERSION;')" \
+        > build-info.json \
+    && chown www-data:www-data build-info.json
 
 # Create required directories
 RUN mkdir -p \

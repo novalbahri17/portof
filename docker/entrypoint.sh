@@ -46,13 +46,16 @@ if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "" ]; then
     php artisan key:generate --force
 fi
 
-# ---- Cache config / routes / views ----
-echo "📦 Caching configuration..."
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
+# ---- Storage link ----
+# Dijalankan lebih awal: tidak butuh database, dan dibutuhkan agar
+# gambar yang diunggah bisa diakses begitu aplikasi hidup.
+php artisan storage:link --force 2>/dev/null || true
 
 # ---- Run migrations ----
+# PENTING: migrasi HARUS jalan sebelum config/route/view cache.
+# SESSION_DRIVER=database & CACHE_STORE=database, jadi tabel sessions/cache
+# harus ada dulu. Kalau cache dibuat lebih dulu lalu tabel belum ada,
+# request pertama akan error 500 dan situs tampak "tidak berubah".
 # Sengaja tidak pakai `set -e` di sini: kalau MySQL sempat tidak terjangkau,
 # kita tetap mau nginx/php-fpm nyala dan log errornya kelihatan,
 # bukan container mati diam-diam.
@@ -61,8 +64,13 @@ if ! php artisan migrate --force; then
     echo "❌ Migrasi gagal — cek kredensial DB_HOST/DB_USERNAME/DB_PASSWORD dan whitelist IP."
 fi
 
-# ---- Storage link ----
-php artisan storage:link --force 2>/dev/null || true
+# ---- Cache config / routes / views ----
+# Dijalankan setelah migrasi selesai, supaya konfigurasi yang di-cache
+# benar-benar cocok dengan skema database yang sudah ter-migrate.
+echo "📦 Caching configuration..."
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
 
 # ---- Seed admin on first run ----
 # PENTING: hanya AdminSeeder yang boleh jalan otomatis.
@@ -85,6 +93,14 @@ fi
 # ---- Generate Wayfinder routes ----
 echo "🧭 Generating Wayfinder routes..."
 php artisan wayfinder:generate 2>/dev/null || true
+
+# ---- Tampilkan stempel build di log ----
+# Berguna untuk memastikan container yang jalan memang image hasil build terbaru.
+if [ -f build-info.json ]; then
+    echo "🏷️  Build info: $(cat build-info.json | tr -d '\n')"
+else
+    echo "🏷️  Build info: tidak ada (image dibuild tanpa stempel)"
+fi
 
 echo "✅ Application ready — starting services"
 

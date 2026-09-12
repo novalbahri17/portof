@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin;
+use App\Http\Controllers\BuildVersionController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\IndexController;
 use App\Http\Controllers\ProjectController;
@@ -10,6 +11,13 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/robots.txt', [SeoController::class, 'robots'])->name('seo.robots');
 Route::get('/sitemap.xml', [SeoController::class, 'sitemap'])->name('seo.sitemap');
+
+// Diagnosa deploy: memastikan build yang live benar-benar versi terbaru.
+// Hanya mengembalikan versi/commit & sidik jari aset — tanpa data sensitif.
+// Buka: GET /_version
+// PENTING: pakai controller, bukan closure, supaya `route:cache` tetap jalan.
+Route::get('/_version', BuildVersionController::class)->name('build.version');
+
 Route::get('/', IndexController::class)->name('home');
 Route::get('/blog/{slug}', [\App\Http\Controllers\BlogController::class, 'show'])->name('blog.show');
 Route::get('/projects/{slug}', [ProjectController::class, 'show'])->name('projects.show');

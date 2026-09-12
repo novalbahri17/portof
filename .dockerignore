@@ -6,6 +6,9 @@ vendor
 public/build
 public/hot
 
+# Build stamp sengaja ditulis di dalam Dockerfile, bukan di-copy dari repo
+build-info.json
+
 # Git
 .git
 .gitattributes
