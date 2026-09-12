@@ -17,6 +17,9 @@ COPY docker/generate-wayfinder-stubs.sh /tmp/generate-stubs.sh
 RUN chmod +x /tmp/generate-stubs.sh && sh /tmp/generate-stubs.sh
 
 ENV DOCKER_BUILD=true
+# Naikkan batas heap Node agar build tidak OOM di server RAM kecil.
+# Sesuaikan angkanya dengan RAM yang tersedia (mis. 512 / 1024 / 2048).
+ENV NODE_OPTIONS=--max-old-space-size=2048
 RUN npm run build
 
 
