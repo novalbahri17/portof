@@ -44,6 +44,11 @@ class IndexController extends Controller
             'about' => SiteSetting::get('about', ''),
             'hobbies' => SiteSetting::get('hobbies', ''),
             'socials' => $socials,
+            'contactInfo' => [
+                'email' => SiteSetting::get('contact_email', ''),
+                'phone' => SiteSetting::get('contact_phone', ''),
+                'address' => SiteSetting::get('contact_address', ''),
+            ],
             'sideProjects' => Project::published()->sideProjects()->orderBy('sort_order')->paginate(3, ['*'], 'side_projects_page'),
             'portfolios' => Project::published()->portfolio()->orderBy('sort_order')->paginate(3, ['*'], 'portfolios_page'),
             'certifications' => $certifications,

@@ -7,6 +7,7 @@ import {
   IconExternalLink, IconArrowUp, IconArrowDown, IconSend, IconCalendar, IconTag,
   IconCode, IconTerminal2, IconDeviceGamepad2, IconCertificate,
   IconChevronLeft, IconChevronRight, IconSchool, IconMapPin, IconSparkles,
+  IconClock, IconPhone,
   IconBrandLaravel, IconBrandVue, IconBrandTailwind, IconBrandPhp, IconBrandMysql,
   IconBrandTypescript, IconBrandJavascript, IconBrandDocker, IconBrandGit, IconBrandNpm,
   IconBrandInertia, IconDatabase,
@@ -35,6 +36,7 @@ const props = defineProps<{
   heroTitle: string; heroSubtitle: string; heroBadge: string; heroImage: string;
   heroImageShape: 'circle' | 'square' | 'rounded'; heroImageSize: number;
   about: string; hobbies: string; socials: Social[];
+  contactInfo: { email: string; phone: string; address: string };
   sideProjects: Paginated<Project>; portfolios: Paginated<Project>; certifications: Certification[]; experiences: Experience[]; blogs: Paginated<Blog>;
   sectionVisibility: Record<string, boolean>;
   seo: Seo;
@@ -663,7 +665,21 @@ onBeforeUnmount(() => {
       <div class="flex flex-col rounded-2xl border border-border/60 bg-card/50 p-6 backdrop-blur-lg lg:col-span-2">
         <h3 class="text-base font-semibold text-foreground">Punya proyek dalam pikiran?</h3>
         <p class="mt-2 text-[13px] leading-relaxed text-muted-foreground">Ceritakan ide, kebutuhan, atau timeline Anda. Saya akan bantu memetakan langkah teknisnya.</p>
-        <div class="mt-4 flex items-center gap-2 text-[13px] text-muted-foreground"><IconMail class="h-3.5 w-3.5" :stroke-width="1.5" /> Saya balas kurang dari 24 jam</div>
+        <ul class="mt-5 space-y-2.5 text-[13px] text-muted-foreground">
+          <li v-if="contactInfo.email" class="flex items-center gap-2">
+            <IconMail class="h-3.5 w-3.5 shrink-0 text-primary" :stroke-width="1.5" />
+            <a :href="`mailto:${contactInfo.email}`" class="break-all transition-colors hover:text-primary">{{ contactInfo.email }}</a>
+          </li>
+          <li v-if="contactInfo.phone" class="flex items-center gap-2">
+            <IconPhone class="h-3.5 w-3.5 shrink-0 text-primary" :stroke-width="1.5" />
+            <a :href="`tel:${contactInfo.phone}`" class="transition-colors hover:text-primary">{{ contactInfo.phone }}</a>
+          </li>
+          <li v-if="contactInfo.address" class="flex items-start gap-2">
+            <IconMapPin class="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" :stroke-width="1.5" />
+            <span>{{ contactInfo.address }}</span>
+          </li>
+        </ul>
+        <div class="mt-4 flex items-center gap-2 text-[13px] text-muted-foreground"><IconClock class="h-3.5 w-3.5" :stroke-width="1.5" /> Saya balas kurang dari 24 jam</div>
         <!-- Social links -->
         <div v-if="socials.length" class="mt-auto flex flex-wrap gap-2 pt-6">
           <a v-for="s in socials" :key="s.network" :href="s.url" target="_blank" rel="noopener noreferrer" class="rounded-full border border-border/60 bg-card/50 p-2.5 text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary" :aria-label="s.network">
