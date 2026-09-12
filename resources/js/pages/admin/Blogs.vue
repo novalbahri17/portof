@@ -4,6 +4,7 @@ import { Plus, Pencil, Trash2 } from 'lucide-vue-next';
 import { ref } from 'vue';
 import FileInput from '@/components/FileInput.vue';
 import RichEditor from '@/components/RichEditor.vue';
+import StorageImage from '@/components/StorageImage.vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 
 type Blog = {
@@ -160,6 +161,12 @@ function destroy(id: number) {
                                     ((e.target as HTMLInputElement).files ??
                                         [])[0] || null)
                         "
+                    />
+                    <StorageImage
+                        v-if="editing?.image"
+                        :path="editing.image"
+                        alt="Gambar saat ini"
+                        image-class="mt-2 h-20 w-32 rounded-lg border border-border object-cover"
                     />
                 </div>
                 <div>

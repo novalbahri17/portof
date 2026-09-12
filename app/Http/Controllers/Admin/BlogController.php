@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Blog;
+use App\Support\StorageFiles;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -32,7 +33,15 @@ class BlogController extends Controller
         $validated['excerpt'] = isset($validated['excerpt']) ? trim(strip_tags($validated['excerpt'])) : null;
 
         if ($request->hasFile('image')) {
-            $validated['image'] = $request->file('image')->store('blogs', 'public');
+            $stored = StorageFiles::store($request->file('image'), 'blogs');
+
+            if ($stored === null) {
+                return back()->withErrors([
+                    'image' => 'Gambar gagal disimpan. Coba unggah ulang.',
+                ]);
+            }
+
+            $validated['image'] = $stored;
         }
 
         if ($request->boolean('published')) {
@@ -58,16 +67,35 @@ class BlogController extends Controller
         $validated['slug'] = Str::slug($validated['title']);
         $validated['excerpt'] = isset($validated['excerpt']) ? trim(strip_tags($validated['excerpt'])) : null;
 
-        if ($request->hasFile('image')) {
-            $stored = $request->file('image')->store('blogs', 'public');
+        // PENTING: form yang tidak mengunggah gambar baru tetap mengirim
+        // field `image` kosong. Karena aturannya `nullable`, nilai kosong itu
+        // lolos validasi dan akan menimpa gambar lama dengan null.
+        // Buang dulu; nanti diisi hanya kalau ada berkas baru yang benar
+        // benar tersimpan.
+        unset($validated['image']);
 
-            if (! $stored) {
+        $missing = '';
+        $oldImageToDelete = null;
+
+        if ($request->hasFile('image')) {
+            $stored = StorageFiles::store($request->file('image'), 'blogs');
+
+            if ($stored === null) {
                 return back()->withErrors([
                     'image' => 'Gambar gagal disimpan. Coba unggah ulang.',
                 ]);
             }
 
             $validated['image'] = $stored;
+
+            if ($blog->image && $blog->image !== $stored) {
+                // Hapus nanti, setelah data baru benar-benar tersimpan.
+                $oldImageToDelete = $blog->image;
+            }
+        } elseif ($blog->image && ! StorageFiles::exists($blog->image)) {
+            // Gambar lama tidak ada di disk ini. JANGAN hapus referensinya:
+            // database mungkin dipakai bersama lingkungan lain.
+            $missing = ' Gambar lama tidak ada di server ini — unggah ulang kalau perlu.';
         }
 
         if ($request->boolean('published') && ! $blog->published_at) {
@@ -76,12 +104,20 @@ class BlogController extends Controller
 
         $blog->update($validated);
 
-        return back()->with('success', 'Blog berhasil diperbarui.');
+        // Baru sekarang aman membuang berkas lama yang sudah digantikan.
+        StorageFiles::delete($oldImageToDelete);
+
+        return back()->with('success', 'Blog berhasil diperbarui.'.$missing);
     }
 
     public function destroy(Blog $blog)
     {
+        $image = $blog->image;
+
         $blog->delete();
+
+        StorageFiles::delete($image);
+
         return back()->with('success', 'Blog berhasil dihapus.');
     }
 }

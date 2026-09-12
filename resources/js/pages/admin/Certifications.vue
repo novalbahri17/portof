@@ -235,6 +235,7 @@ async function destroy(certification: Certification) {
                             label="Pilih gambar"
                             accept="image/*"
                             multiple
+                            :show-preview="false"
                             hint="Bisa pilih beberapa gambar sekaligus. Maks 2 MB per gambar."
                             :error="form.errors.images"
                             @change="onPickImages"
@@ -337,6 +338,7 @@ async function destroy(certification: Certification) {
                         <FileInput
                             label="Pilih PDF"
                             accept="application/pdf"
+                            :show-preview="false"
                             :error="form.errors.certificate_file"
                             empty-text="Belum ada berkas dipilih"
                             @change="

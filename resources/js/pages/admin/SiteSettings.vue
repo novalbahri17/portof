@@ -125,6 +125,20 @@ const faviconPreview = ref(props.settings.favicon || '');
 const heroImagePreview = ref(props.settings.hero_image || '');
 const logoLightPreview = ref(props.settings.logo_light || '');
 const uploadingImage = ref(false);
+
+/**
+ * Simpan path berkas hasil unggah supaya pratinjau selalu memakai
+ * path dari server, bukan URL blob sementara milik browser.
+ */
+const imagePreviewRefs = {
+    og_image: ogImagePreview,
+    twitter_image: twitterImagePreview,
+    favicon: faviconPreview,
+    hero_image: heroImagePreview,
+    logo_light: logoLightPreview,
+} as const;
+
+type ImageKey = keyof typeof imagePreviewRefs;
 const heroImageSizePx = computed(() => {
     const size = Number(form.hero_image_size);
     if (!Number.isFinite(size)) return 112;
@@ -140,15 +154,7 @@ function save() {
     form.put('/admin/settings');
 }
 
-function uploadSeoImage(
-    event: Event,
-    type:
-        | 'og_image'
-        | 'twitter_image'
-        | 'favicon'
-        | 'hero_image'
-        | 'logo_light',
-) {
+function uploadSeoImage(event: Event, type: ImageKey) {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
     uploadingImage.value = true;
@@ -157,13 +163,22 @@ function uploadSeoImage(
     formData.append('type', type);
     router.post('/admin/settings/seo-image', formData, {
         preserveScroll: true,
-        onSuccess: () => {
-            const url = URL.createObjectURL(file);
-            if (type === 'og_image') ogImagePreview.value = url;
-            else if (type === 'twitter_image') twitterImagePreview.value = url;
-            else if (type === 'favicon') faviconPreview.value = url;
-            else if (type === 'logo_light') logoLightPreview.value = url;
-            else heroImagePreview.value = url;
+        onSuccess: (page) => {
+            // Ambil path berkas yang benar-benar tersimpan dari server.
+            // Memakai URL.createObjectURL() di sini salah: nilainya adalah
+            // "blob:http://...", sehingga StorageImage menyusun src menjadi
+            // "/storage/blob:http://..." dan pratinjau gagal dimuat.
+            const settings = page.props.settings as
+                | Record<string, string>
+                | undefined;
+            const saved = settings?.[type];
+
+            if (typeof saved === 'string' && saved !== '') {
+                imagePreviewRefs[type].value = saved;
+            } else {
+                // Props belum memuat nilainya — ambil ulang dari server.
+                router.reload({ only: ['settings'] });
+            }
         },
         onFinish: () => {
             uploadingImage.value = false;
@@ -171,23 +186,12 @@ function uploadSeoImage(
     });
 }
 
-function deleteSeoImage(
-    type:
-        | 'og_image'
-        | 'twitter_image'
-        | 'favicon'
-        | 'hero_image'
-        | 'logo_light',
-) {
+function deleteSeoImage(type: ImageKey) {
     router.delete('/admin/settings/seo-image', {
         data: { type },
         preserveScroll: true,
         onSuccess: () => {
-            if (type === 'og_image') ogImagePreview.value = '';
-            else if (type === 'twitter_image') twitterImagePreview.value = '';
-            else if (type === 'favicon') faviconPreview.value = '';
-            else if (type === 'logo_light') logoLightPreview.value = '';
-            else heroImagePreview.value = '';
+            imagePreviewRefs[type].value = '';
         },
     });
 }

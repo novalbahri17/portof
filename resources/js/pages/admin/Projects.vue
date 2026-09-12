@@ -4,6 +4,7 @@ import { Plus, Pencil, Trash2, Search } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import FileInput from '@/components/FileInput.vue';
 import RichEditor from '@/components/RichEditor.vue';
+import StorageImage from '@/components/StorageImage.vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { resolveTablerIcon } from '@/lib/tabler-icons';
 import { technologyCatalog } from '@/lib/technology-catalog';
@@ -340,6 +341,12 @@ function destroy(id: number) {
                                             [])[0] || null)
                             "
                         />
+                        <StorageImage
+                            v-if="editing?.image"
+                            :path="editing.image"
+                            alt="Gambar utama saat ini"
+                            image-class="mt-2 h-20 w-32 rounded-lg border border-border object-cover"
+                        />
                     </div>
                     <div>
                         <label
@@ -362,12 +369,13 @@ function destroy(id: number) {
                         >Galeri saat ini</label
                     >
                     <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                        <img
+                        <StorageImage
                             v-for="img in existingGallery"
                             :key="img"
-                            :src="`/storage/${img}`"
+                            :path="img"
                             alt="Gambar galeri"
-                            class="h-20 w-full rounded-md border border-border object-cover"
+                            :show-label="false"
+                            image-class="h-20 w-full rounded-md border border-border object-cover"
                         />
                     </div>
                     <p class="text-xs text-muted-foreground">

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Project;
+use App\Support\StorageFiles;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -50,13 +51,29 @@ class ProjectController extends Controller
         $validated['technologies'] = $this->sanitizeTechnologies($request->input('technologies'));
 
         if ($request->hasFile('image')) {
-            $validated['image'] = $request->file('image')->store('projects', 'public');
+            $stored = StorageFiles::store($request->file('image'), 'projects');
+
+            if ($stored === null) {
+                return back()->withErrors([
+                    'image' => 'Gambar gagal disimpan. Coba unggah ulang.',
+                ]);
+            }
+
+            $validated['image'] = $stored;
         } else {
             // Keep current cover image when no new file is uploaded.
             unset($validated['image']);
         }
 
-        $validated['gallery'] = $this->storeGalleryImages($request);
+        $gallery = $this->storeGalleryImages($request);
+
+        if ($gallery === null) {
+            return back()->withErrors([
+                'gallery_images' => 'Ada gambar galeri yang gagal disimpan. Coba unggah ulang.',
+            ]);
+        }
+
+        $validated['gallery'] = $gallery;
         unset($validated['gallery_images']);
 
         Project::create($validated);
@@ -94,51 +111,88 @@ class ProjectController extends Controller
         $validated['features'] = $this->sanitizeFeatures($request->input('features'));
         $validated['technologies'] = $this->sanitizeTechnologies($request->input('technologies'));
 
-        if ($request->hasFile('image')) {
-            $stored = $request->file('image')->store('projects', 'public');
+        $missing = '';
+        $oldCoverToDelete = null;
 
-            if (! $stored) {
+        // PENTING: form yang tidak mengunggah gambar baru tetap mengirim
+        // field `image` kosong. Karena aturannya `nullable`, nilai kosong itu
+        // lolos validasi dan akan menimpa gambar lama dengan null.
+        // Buang dulu; nanti diisi hanya kalau ada berkas baru yang benar
+        // benar tersimpan.
+        unset($validated['image']);
+
+        if ($request->hasFile('image')) {
+            $stored = StorageFiles::store($request->file('image'), 'projects');
+
+            if ($stored === null) {
                 return back()->withErrors([
                     'image' => 'Gambar gagal disimpan. Coba unggah ulang.',
                 ]);
             }
 
             $validated['image'] = $stored;
+
+            if ($project->image && $project->image !== $stored) {
+                // Hapus nanti, setelah data baru benar-benar tersimpan.
+                $oldCoverToDelete = $project->image;
+            }
+        } elseif ($project->image && ! StorageFiles::exists($project->image)) {
+            // Gambar utama tidak ada di disk ini. JANGAN hapus referensinya:
+            // database mungkin dipakai bersama lingkungan lain.
+            $missing = ' Gambar utama tidak ada di server ini — unggah ulang kalau perlu.';
         }
 
         $existingGallery = is_array($project->gallery) ? $project->gallery : [];
+
         $newGallery = $this->storeGalleryImages($request);
-        $validated['gallery'] = array_values(array_filter(array_merge($existingGallery, $newGallery)));
+
+        if ($newGallery === null) {
+            return back()->withErrors([
+                'gallery_images' => 'Ada gambar galeri yang gagal disimpan. Coba unggah ulang.',
+            ]);
+        }
+
+        // Galeri lama tetap dipertahankan seluruhnya. Gambar baru hanya
+        // ditambahkan, tidak pernah menggantikan yang sudah ada.
+        $validated['gallery'] = array_values(array_unique(array_merge($existingGallery, $newGallery)));
         unset($validated['gallery_images']);
 
         $project->update($validated);
 
-        return back()->with('success', 'Proyek berhasil diperbarui.');
+        // Baru sekarang aman membuang berkas lama yang sudah digantikan.
+        StorageFiles::delete($oldCoverToDelete);
+
+        return back()->with('success', 'Proyek berhasil diperbarui.'.$missing);
     }
 
     public function destroy(Project $project)
     {
+        $files = array_merge(
+            $project->image ? [$project->image] : [],
+            is_array($project->gallery) ? $project->gallery : [],
+        );
+
         $project->delete();
+
+        StorageFiles::deleteMany($files);
+
         return back()->with('success', 'Proyek berhasil dihapus.');
     }
 
-    private function storeGalleryImages(Request $request): array
+    /**
+     * Simpan gambar galeri. Mengembalikan null kalau ada yang gagal, supaya
+     * pemanggil bisa membatalkan tanpa kehilangan data lama. Array kosong
+     * berarti memang tidak ada berkas galeri yang dikirim.
+     *
+     * @return array<int, string>|null
+     */
+    private function storeGalleryImages(Request $request): ?array
     {
-        $gallery = [];
-
-        if ($request->hasFile('gallery_images')) {
-            foreach ($request->file('gallery_images') as $image) {
-                $stored = $image->store('projects', 'public');
-
-                if (! $stored) {
-                    return [];
-                }
-
-                $gallery[] = $stored;
-            }
+        if (! $request->hasFile('gallery_images')) {
+            return [];
         }
 
-        return $gallery;
+        return StorageFiles::storeMany($request->file('gallery_images', []) ?? [], 'projects');
     }
 
     private function sanitizeFeatures($features): ?array

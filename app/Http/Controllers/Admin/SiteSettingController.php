@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\SiteSetting;
+use App\Support\StorageFiles;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class SiteSettingController extends Controller
@@ -123,13 +123,13 @@ class SiteSettingController extends Controller
 
         $type = $request->input('type');
 
-        // Simpan berkas baru dulu. Berkas lama BARU dihapus setelah
-        // berkas baru benar-benar tersimpan, supaya gambar tidak bisa
+        // Simpan berkas baru dulu, dan pastikan benar-benar tersimpan.
+        // Berkas lama BARU dihapus setelah itu, supaya gambar tidak bisa
         // hilang kalau proses unggah gagal di tengah jalan.
         $folder = str_starts_with($type, 'logo') ? 'logo' : 'seo';
-        $path = $request->file('image')->store($folder, 'public');
+        $path = StorageFiles::store($request->file('image'), $folder);
 
-        if (! $path) {
+        if ($path === null) {
             return back()->withErrors([
                 'image' => 'Gambar gagal disimpan. Coba unggah ulang.',
             ]);
@@ -139,8 +139,8 @@ class SiteSettingController extends Controller
 
         SiteSetting::set($type, $path);
 
-        if ($old && $old !== $path && Storage::disk('public')->exists($old)) {
-            Storage::disk('public')->delete($old);
+        if ($old && $old !== $path) {
+            StorageFiles::delete($old);
         }
 
         return back()->with('success', 'Gambar berhasil diperbarui.');
@@ -155,9 +155,7 @@ class SiteSettingController extends Controller
         $type = $request->input('type');
         $old = SiteSetting::get($type, '');
 
-        if ($old && Storage::disk('public')->exists($old)) {
-            Storage::disk('public')->delete($old);
-        }
+        StorageFiles::delete($old);
 
         SiteSetting::set($type, '');
 

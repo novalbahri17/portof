@@ -52,12 +52,28 @@ class Certification extends Model
 
     /**
      * Akses `$certification->images` selalu berupa array.
+     *
+     * Kalau nilai yang di-set kosong, JANGAN pernah menimpa daftar gambar
+     * yang sudah tersimpan. Ini pengaman terakhir: form yang lupa mengirim
+     * gambar tidak boleh membuat sertifikasi kehilangan semua fotonya.
      */
     protected function images(): Attribute
     {
         return Attribute::make(
             get: fn (): array => $this->imageList(),
-            set: fn ($value): string => json_encode($this->cleanPaths((array) $value)),
+            set: function ($value): string {
+                $paths = $this->cleanPaths((array) $value);
+
+                if ($paths === []) {
+                    $existing = $this->imageList();
+
+                    if ($existing !== []) {
+                        return json_encode($existing);
+                    }
+                }
+
+                return json_encode($paths);
+            },
         );
     }
 
